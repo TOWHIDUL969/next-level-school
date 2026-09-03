@@ -23,7 +23,7 @@ export default function Header() {
                   className="h-6 w-6"
                   fill="none"
                   viewBox="0 0 24 24"
-                  stroke="currentColor"
+                  stroke="pink"
                 >
                   <path
                     strokeLinecap="round"
