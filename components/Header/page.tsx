@@ -3,16 +3,16 @@ import Link from "next/link";
 
 export default function Header() {
   return (
-    <header className="sticky top-0 z-50 px-3 pt-3">
+    <header className="sticky top-0 z-50 px-3 pt-3 bg-slate-950">
       <div className="mx-auto max-w-7xl">
 
-        <div className="navbar min-h-16 rounded-2xl border border-base-300 bg-base-100/95 px-3 shadow-lg backdrop-blur-md lg:px-5">
+        <div className="navbar min-h-16 rounded-2xl border border-slate-900 bg-slate-950 px-3 shadow-lg backdrop-blur-md lg:px-5">
 
           {/* ================= Logo / Brand ================= */}
           <div className="navbar-start">
 
             {/* Mobile Menu Button */}
-            <div className="dropdown lg:hidden">
+            <div className="dropdown lg:hidden bg-slate-950">
               <div
                 tabIndex={0}
                 role="button"
@@ -37,7 +37,7 @@ export default function Header() {
               {/* Mobile Menu */}
               <ul
                 tabIndex={0}
-                className="menu dropdown-content z-50 mt-3 w-64 rounded-2xl border border-base-300 bg-base-100 p-3 shadow-xl"
+                className="menu dropdown-content z-50 mt-3 w-64 rounded-2xl border border-base-300 bg-slate-950 p-3 shadow-xl"
               >
                 <li>
                   <Link href="/" className="font-medium">
@@ -208,7 +208,7 @@ export default function Header() {
                     Courses
                   </summary>
 
-                  <ul className="z-50 mt-3 w-64 rounded-xl border border-base-300 bg-base-100 p-2 shadow-xl">
+                  <ul className="z-50 mt-3 w-64 rounded-xl border border-base-300 bg-slate-950 p-2 shadow-xl">
 
                     <li>
                       <Link href="/courses" className="font-semibold">
