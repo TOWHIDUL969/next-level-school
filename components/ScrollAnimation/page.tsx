@@ -1,70 +1,141 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import {
+  ReactNode,
+  useLayoutEffect,
+  useRef,
+} from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
-export default function ScrollAnimation() {
+interface ScrollAnimationProps {
+  children: ReactNode;
+  className?: string;
+  direction?: "up" | "down" | "left" | "right" | "scale";
+  delay?: number;
+  duration?: number;
+  distance?: number;
+  once?: boolean;
+}
+
+export default function ScrollAnimation({
+  children,
+  className = "",
+  direction = "up",
+  delay = 0,
+  duration = 0.8,
+  distance = 60,
+  once = true,
+}: ScrollAnimationProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.from(".scroll-item", {
-        opacity: 0,
-        y: 80,
-        duration: 1,
-        stagger: 0.2,
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: ".scroll-section",
-          start: "top 80%",
-          toggleActions: "play none none reverse",
-        },
-      });
-    }, containerRef);
+  useLayoutEffect(() => {
+    const container = containerRef.current;
 
-    return () => ctx.revert();
-  }, []);
+    if (!container) return;
+
+    const ctx = gsap.context(() => {
+      const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
+
+      // ================================
+      // Reduced Motion
+      // ================================
+      if (prefersReducedMotion) {
+        gsap.set(container, {
+          clearProps: "all",
+          opacity: 1,
+        });
+
+        return;
+      }
+
+      // ================================
+      // Initial Position
+      // ================================
+      let x = 0;
+      let y = 0;
+      let scale = 1;
+
+      switch (direction) {
+        case "up":
+          y = distance;
+          break;
+
+        case "down":
+          y = -distance;
+          break;
+
+        case "left":
+          x = distance;
+          break;
+
+        case "right":
+          x = -distance;
+          break;
+
+        case "scale":
+          scale = 0.88;
+          break;
+      }
+
+      // ================================
+      // Scroll Reveal
+      // ================================
+      gsap.fromTo(
+        container,
+        {
+          opacity: 0,
+          x,
+          y,
+          scale,
+          filter: "blur(8px)",
+        },
+        {
+          opacity: 1,
+          x: 0,
+          y: 0,
+          scale: 1,
+          filter: "blur(0px)",
+          duration,
+          delay,
+          ease: "power3.out",
+
+          scrollTrigger: {
+            trigger: container,
+            start: "top 85%",
+            end: "bottom 20%",
+
+            toggleActions: once
+              ? "play none none none"
+              : "play reverse play reverse",
+
+            once,
+          },
+        }
+      );
+    }, container);
+
+    return () => {
+      ctx.revert();
+    };
+  }, [
+    direction,
+    delay,
+    duration,
+    distance,
+    once,
+  ]);
 
   return (
-    <div ref={containerRef} className="bg-zinc-950 text-white">
-      <section className="scroll-section py-20">
-        <div className="mx-auto max-w-7xl px-4">
-          <h2 className="scroll-item text-4xl font-bold">
-            Learn. Practice. Grow.
-          </h2>
-
-          <p className="scroll-item mt-4 max-w-2xl text-lg">
-            Build practical skills with modern technology and
-            industry-focused training.
-          </p>
-
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
-            <div className="scroll-item rounded-2xl border p-6 shadow-lg">
-              <h3 className="text-xl font-bold">Practical Learning</h3>
-              <p className="mt-2">
-                Learn by doing real-world projects.
-              </p>
-            </div>
-
-            <div className="scroll-item rounded-2xl border p-6 shadow-lg">
-              <h3 className="text-xl font-bold">Expert Mentors</h3>
-              <p className="mt-2">
-                Learn from experienced instructors.
-              </p>
-            </div>
-
-            <div className="scroll-item rounded-2xl border p-6 shadow-lg">
-              <h3 className="text-xl font-bold">Career Focused</h3>
-              <p className="mt-2">
-                Develop skills for your future career.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+    <div
+      ref={containerRef}
+      className={className}
+    >
+      {children}
     </div>
   );
 }

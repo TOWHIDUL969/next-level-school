@@ -109,6 +109,12 @@ export default function Header() {
                   </details>
                 </li>
 
+
+                <li>
+                  <Link href="/our-team" className="font-medium">
+                    Our-Team
+                  </Link>
+                </li>
                 <li>
                   <Link href="/contact" className="font-medium">
                     Contact
@@ -255,6 +261,12 @@ export default function Header() {
                     </li>
                   </ul>
                 </details>
+              </li>
+
+              <li>
+                <Link href="/our-team" className="font-medium">
+                  Our-Team
+                </Link>
               </li>
 
               <li>
