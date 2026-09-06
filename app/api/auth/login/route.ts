@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import bcrypt from "bcryptjs";
+
 import { getUsersCollection } from "@/lib/users";
+import { createSession } from "@/lib/session";
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,13 +56,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Create session
+    await createSession(
+      user._id.toString(),
+      user.role
+    );
+
     // Login successful
     return NextResponse.json(
       {
         success: true,
         message: "Login successful",
+
         user: {
-          id: user._id,
+          id: user._id.toString(),
           name: user.name,
           email: user.email,
           phone: user.phone,

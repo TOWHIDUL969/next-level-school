@@ -137,13 +137,20 @@ export default function LoginPage() {
         return;
       }
 
-      setSuccess("Login successful!");
-
       console.log("Logged in user:", data.user);
 
+      setSuccess("Login successful!");
+
+      // Role based redirect
       setTimeout(() => {
-        router.push("/dashboard");
+        if (data.user.role === "admin") {
+          router.push("/dashboard/admin");
+        } else {
+          router.push("/dashboard");
+        }
       }, 700);
+    } catch (error) {
+      console.error("Login Error:", error);
 
       setError(
         "Unable to connect to the server. Please try again."
