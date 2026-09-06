@@ -116,6 +116,11 @@ export default function Header() {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/blogs" className="font-medium">
+                    Blogs
+                  </Link>
+                </li>
+                <li>
                   <Link href="/contact" className="font-medium">
                     Contact
                   </Link>
@@ -268,6 +273,11 @@ export default function Header() {
                   Our-Team
                 </Link>
               </li>
+              <li>
+                  <Link href="/blogs" className="font-medium">
+                    Blogs
+                  </Link>
+                </li>
 
               <li>
                 <Link

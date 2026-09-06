@@ -5,11 +5,17 @@ import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import Image from "next/image";
+import { useRouter } from "next/navigation"
+
 
 export default function LoginPage() {
   const pageRef = useRef<HTMLDivElement>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const router = useRouter();
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -86,11 +92,65 @@ export default function LoginPage() {
     return () => ctx.revert();
   }, []);
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Firebase / NextAuth / custom authentication
-    // এখানে পরে তোমার login logic বসাবে।
+    setError("");
+    setSuccess("");
+
+    const formData = new FormData(e.currentTarget);
+
+    const email = String(formData.get("email") || "")
+      .trim()
+      .toLowerCase();
+
+    const password = String(formData.get("password") || "");
+
+    if (!email) {
+      setError("Please enter your email address.");
+      return;
+    }
+
+    if (!password) {
+      setError("Please enter your password.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || "Invalid email or password.");
+        return;
+      }
+
+      setSuccess("Login successful!");
+
+      console.log("Logged in user:", data.user);
+
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 700);
+
+      setError(
+        "Unable to connect to the server. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -302,6 +362,17 @@ export default function LoginPage() {
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="space-y-5">
                   {/* Email */}
+                  {error && (
+                    <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                      {error}
+                    </div>
+                  )}
+
+                  {success && (
+                    <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400">
+                      {success}
+                    </div>
+                  )}
                   <div>
                     <label
                       htmlFor="email"
@@ -469,13 +540,22 @@ export default function LoginPage() {
                   {/* Submit */}
                   <button
                     type="submit"
-                    className="group flex h-13 w-full items-center justify-center gap-3 rounded-2xl bg-white px-5 text-sm font-semibold text-black transition-all duration-300 hover:scale-[1.01] hover:bg-zinc-200 active:scale-[0.99]"
+                    disabled={loading}
+                    className="group flex h-13 w-full items-center justify-center gap-3 rounded-2xl bg-white px-5 text-sm font-semibold text-black transition-all duration-300 hover:scale-[1.01] hover:bg-zinc-200 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Sign In
-
-                    <span className="transition-transform duration-300 group-hover:translate-x-1">
-                      →
-                    </span>
+                    {loading ? (
+                      <>
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/20 border-t-black" />
+                        Signing In...
+                      </>
+                    ) : (
+                      <>
+                        Sign In
+                        <span className="transition-transform duration-300 group-hover:translate-x-1">
+                          →
+                        </span>
+                      </>
+                    )}
                   </button>
                 </form>
 
