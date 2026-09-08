@@ -1,8 +1,42 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ElementType,
+} from "react";
+
+import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+
 import gsap from "gsap";
+
+import {
+  Activity,
+  ArrowDownRight,
+  ArrowUpRight,
+  Bell,
+  BookOpen,
+  ChevronRight,
+  CircleDollarSign,
+  GraduationCap,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  MoreHorizontal,
+  Plus,
+  Search,
+  Settings,
+  ShieldCheck,
+  TrendingUp,
+  UserRound,
+  Users,
+  WalletCards,
+  X,
+} from "lucide-react";
 
 import {
   Area,
@@ -19,29 +53,36 @@ import {
   YAxis,
 } from "recharts";
 
-import {
-  Activity,
-  ArrowDownRight,
-  ArrowUpRight,
-  Bell,
-  BookOpen,
-  ChevronRight,
-  CircleDollarSign,
-  GraduationCap,
-  LayoutDashboard,
-  Menu,
-  MoreHorizontal,
-  Plus,
-  Search,
-  Settings,
-  ShieldCheck,
-  Sparkles,
-  TrendingUp,
-  UserRound,
-  Users,
-  WalletCards,
-  X,
-} from "lucide-react";
+/* =========================================================
+   TYPES
+========================================================= */
+
+type Admin = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+};
+
+type NavItem = {
+  title: string;
+  href: string;
+  icon: ElementType;
+};
+
+type StatCardProps = {
+  title: string;
+  value: string;
+  change: string;
+  positive: boolean;
+  icon: ElementType;
+  gradient: string;
+};
+
+/* =========================================================
+   DATA
+========================================================= */
 
 const enrollmentData = [
   { month: "Jan", students: 120 },
@@ -78,6 +119,13 @@ const courseData = [
   { name: "Graphics", value: 25 },
   { name: "UI/UX", value: 18 },
   { name: "Basic IT", value: 15 },
+];
+
+const courseColors = [
+  "#a855f7",
+  "#3b82f6",
+  "#22d3ee",
+  "#6366f1",
 ];
 
 const coursePerformance = [
@@ -138,7 +186,7 @@ const recentEnrollments = [
   },
 ];
 
-const navItems = [
+const navItems: NavItem[] = [
   {
     title: "Dashboard",
     href: "/dashboard/admin",
@@ -188,6 +236,10 @@ const chartTooltipStyle = {
   color: "#fff",
 };
 
+/* =========================================================
+   STAT CARD
+========================================================= */
+
 function StatCard({
   title,
   value,
@@ -195,35 +247,88 @@ function StatCard({
   positive,
   icon: Icon,
   gradient,
-}: {
-  title: string;
-  value: string;
-  change: string;
-  positive: boolean;
-  icon: React.ElementType;
-  gradient: string;
-}) {
+}: StatCardProps) {
   return (
-    <div className="stat-card group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.045] p-5 backdrop-blur-xl transition-all duration-500 hover:-translate-y-1 hover:border-white/20">
+    <div
+      className="
+        stat-card
+        group
+        relative
+        min-w-0
+        overflow-hidden
+        rounded-3xl
+        border
+        border-white/10
+        bg-white/[0.045]
+        p-5
+        opacity-0
+        backdrop-blur-xl
+        transition-all
+        duration-500
+        hover:-translate-y-1
+        hover:border-white/20
+      "
+    >
+      {/* Glow */}
       <div
-        className={`absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gradient-to-br ${gradient} opacity-20 blur-3xl transition-all duration-700 group-hover:scale-150 group-hover:opacity-40`}
+        className={`
+          pointer-events-none
+          absolute
+          -right-10
+          -top-10
+          h-32
+          w-32
+          rounded-full
+          bg-gradient-to-br
+          ${gradient}
+          opacity-20
+          blur-3xl
+          transition-all
+          duration-700
+          group-hover:scale-150
+          group-hover:opacity-40
+        `}
       />
 
-      <div className="relative flex items-start justify-between">
-        <div>
-          <p className="text-sm text-zinc-500">{title}</p>
+      <div className="relative flex min-w-0 items-start justify-between gap-4">
+        {/* Content */}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm text-zinc-500">
+            {title}
+          </p>
 
-          <h3 className="mt-3 text-3xl font-bold tracking-tight text-white">
+          <h3
+            className="
+              mt-3
+              whitespace-nowrap
+              text-2xl
+              font-bold
+              tracking-tight
+              text-white
+              sm:text-3xl
+            "
+          >
             {value}
           </h3>
 
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-3 flex min-w-0 items-center gap-2">
             <span
-              className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${
-                positive
-                  ? "bg-cyan-400/10 text-cyan-400"
-                  : "bg-red-400/10 text-red-400"
-              }`}
+              className={`
+                inline-flex
+                shrink-0
+                items-center
+                gap-1
+                rounded-full
+                px-2
+                py-1
+                text-xs
+                font-semibold
+                ${
+                  positive
+                    ? "bg-cyan-400/10 text-cyan-400"
+                    : "bg-red-400/10 text-red-400"
+                }
+              `}
             >
               {positive ? (
                 <ArrowUpRight size={13} />
@@ -234,52 +339,242 @@ function StatCard({
               {change}
             </span>
 
-            <span className="text-xs text-zinc-600">vs last month</span>
+            <span className="truncate text-[11px] text-zinc-600">
+              vs last month
+            </span>
           </div>
         </div>
 
+        {/* Icon */}
         <div
-          className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${gradient} shadow-lg`}
+          className={`
+            relative
+            flex
+            h-11
+            w-11
+            shrink-0
+            items-center
+            justify-center
+            rounded-2xl
+            bg-gradient-to-br
+            ${gradient}
+            shadow-lg
+            sm:h-12
+            sm:w-12
+          `}
         >
-          <Icon size={22} className="text-white" />
+          <Icon
+            size={21}
+            className="text-white"
+            strokeWidth={2}
+          />
         </div>
       </div>
     </div>
   );
 }
 
+/* =========================================================
+   MAIN DASHBOARD
+========================================================= */
+
 export default function AdminDashboard() {
   const dashboardRef = useRef<HTMLDivElement>(null);
+  const mobileSidebarRef = useRef<HTMLElement>(null);
+
+  const pathname = usePathname();
+
+  const [admin, setAdmin] = useState<Admin | null>(null);
+  const [loadingAdmin, setLoadingAdmin] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  /* =======================================================
+     FETCH ADMIN
+  ======================================================= */
 
   useEffect(() => {
+    let mounted = true;
+
+    const fetchAdmin = async () => {
+      try {
+        setLoadingAdmin(true);
+
+        const response = await fetch("/api/auth/me", {
+          method: "GET",
+          cache: "no-store",
+          credentials: "include",
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data?.message || "Failed to fetch admin"
+          );
+        }
+
+        if (mounted) {
+          setAdmin(data.user);
+        }
+      } catch (error) {
+        console.error("Admin fetch error:", error);
+
+        if (mounted) {
+          setAdmin(null);
+        }
+      } finally {
+        if (mounted) {
+          setLoadingAdmin(false);
+        }
+      }
+    };
+
+    fetchAdmin();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  /* =======================================================
+     LOGOUT
+  ======================================================= */
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+
+    try {
+      setLoggingOut(true);
+
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+
+      const contentType =
+        response.headers.get("content-type") || "";
+
+      if (!contentType.includes("application/json")) {
+        throw new Error(
+          `Logout API returned ${response.status} instead of JSON`
+        );
+      }
+
+      const data = await response.json();
+
+      if (!response.ok || !data?.success) {
+        throw new Error(
+          data?.message || "Logout failed"
+        );
+      }
+
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Logout Error:", error);
+      setLoggingOut(false);
+    }
+  };
+
+  /* =======================================================
+     GSAP PAGE ANIMATION
+  ======================================================= */
+
+  useLayoutEffect(() => {
+    if (!dashboardRef.current) return;
+
     const ctx = gsap.context(() => {
-      gsap.from(".dashboard-item", {
-        opacity: 0,
-        y: 25,
-        duration: 0.7,
-        stagger: 0.08,
-        ease: "power3.out",
+      const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
+
+      const dashboardItems =
+        gsap.utils.toArray<HTMLElement>(
+          ".dashboard-item"
+        );
+
+      const statCards =
+        gsap.utils.toArray<HTMLElement>(
+          ".stat-card"
+        );
+
+      const chartCards =
+        gsap.utils.toArray<HTMLElement>(
+          ".chart-card"
+        );
+
+      if (prefersReducedMotion) {
+        gsap.set(
+          [
+            ...dashboardItems,
+            ...statCards,
+            ...chartCards,
+          ],
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+          }
+        );
+
+        return;
+      }
+
+      const timeline = gsap.timeline({
+        defaults: {
+          ease: "power3.out",
+        },
       });
 
-      gsap.from(".stat-card", {
-        opacity: 0,
-        y: 35,
-        scale: 0.96,
-        duration: 0.8,
-        stagger: 0.1,
-        delay: 0.15,
-        ease: "power3.out",
-      });
+      timeline
+        .fromTo(
+          dashboardItems,
+          {
+            opacity: 0,
+            y: 25,
+          },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.7,
+            stagger: 0.08,
+          }
+        )
+        .fromTo(
+          statCards,
+          {
+            opacity: 0,
+            y: 35,
+            scale: 0.96,
+          },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.8,
+            stagger: 0.1,
+          },
+          "-=0.3"
+        )
+        .fromTo(
+          chartCards,
+          {
+            opacity: 0,
+            y: 30,
+          },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.9,
+            stagger: 0.12,
+          },
+          "-=0.35"
+        );
 
-      gsap.from(".chart-card", {
-        opacity: 0,
-        y: 30,
-        duration: 0.9,
-        stagger: 0.12,
-        delay: 0.35,
-        ease: "power3.out",
-      });
-
+      /* Floating background glow */
       gsap.to(".floating-glow", {
         x: 80,
         y: 40,
@@ -290,15 +585,81 @@ export default function AdminDashboard() {
       });
     }, dashboardRef);
 
-    return () => ctx.revert();
+    return () => {
+      ctx.revert();
+    };
   }, []);
+
+  /* =======================================================
+     MOBILE SIDEBAR ANIMATION
+  ======================================================= */
+
+  useLayoutEffect(() => {
+    if (!mobileSidebarRef.current) return;
+
+    const sidebar = mobileSidebarRef.current;
+
+    if (mobileMenuOpen) {
+      gsap.fromTo(
+        sidebar,
+        {
+          xPercent: -100,
+        },
+        {
+          xPercent: 0,
+          duration: 0.45,
+          ease: "power3.out",
+        }
+      );
+    }
+  }, [mobileMenuOpen]);
+
+  /* =======================================================
+     CLOSE MOBILE MENU ON ROUTE CHANGE
+  ======================================================= */
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
+  /* =======================================================
+     ACTIVE NAV
+  ======================================================= */
+
+  const isActive = (href: string) => {
+    if (href === "/dashboard/admin") {
+      return pathname === href;
+    }
+
+    return pathname.startsWith(href);
+  };
+
+  /* =======================================================
+     ADMIN DISPLAY
+  ======================================================= */
+
+  const adminName = admin?.name || "Admin";
+
+  const adminInitial =
+    admin?.name?.charAt(0)?.toUpperCase() || "A";
+
+  /* =======================================================
+     RENDER
+  ======================================================= */
 
   return (
     <div
       ref={dashboardRef}
-      className="min-h-screen overflow-hidden bg-[#050507] text-white"
+      className="
+        min-h-screen
+        overflow-hidden
+        bg-[#050507]
+        text-white
+      "
     >
-      {/* Background */}
+      {/* ===================================================
+          BACKGROUND
+      =================================================== */}
 
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="floating-glow absolute -left-32 -top-32 h-96 w-96 rounded-full bg-purple-600/20 blur-[140px]" />
@@ -307,24 +668,59 @@ export default function AdminDashboard() {
 
         <div className="absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-cyan-500/10 blur-[140px]" />
 
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:linear-gradient(to_bottom,black,transparent)]" />
+        <div
+          className="
+            absolute
+            inset-0
+            bg-[linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.025)_1px,transparent_1px)]
+            bg-[size:60px_60px]
+            [mask-image:linear-gradient(to_bottom,black,transparent)]
+          "
+        />
       </div>
 
+      {/* ===================================================
+          MAIN LAYOUT
+      =================================================== */}
+
       <div className="relative flex min-h-screen">
-        {/* Sidebar */}
 
-        <aside className="dashboard-item hidden w-72 shrink-0 border-r border-white/10 bg-black/20 p-5 backdrop-blur-2xl lg:block">
+        {/* =================================================
+            DESKTOP SIDEBAR
+        ================================================= */}
+
+        <aside
+          className="
+            dashboard-item
+            hidden
+            w-72
+            shrink-0
+            border-r
+            border-white/10
+            bg-black/20
+            p-5
+            backdrop-blur-2xl
+            lg:block
+          "
+        >
           <div className="sticky top-5">
-            {/* Logo */}
 
+            {/* Logo */}
             <div className="mb-10 flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-400 shadow-lg shadow-purple-500/20">
-                <Sparkles size={22} />
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black shadow-lg shadow-purple-500/20">
+                <Image
+                  src="/logo.png"
+                  alt="Next Level School"
+                  width={42}
+                  height={42}
+                  priority
+                  className="h-10 w-10 object-contain"
+                />
               </div>
 
               <div>
                 <h1 className="font-bold tracking-tight">
-                  Next Level
+                  Next Level School
                 </h1>
 
                 <p className="text-xs text-zinc-500">
@@ -333,30 +729,55 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Navigation */}
-
-            <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600">
+            {/* Navigation Label */}
+            <p
+              className="
+                mb-3
+                px-3
+                text-[10px]
+                font-bold
+                uppercase
+                tracking-[0.2em]
+                text-zinc-600
+              "
+            >
               Management
             </p>
 
+            {/* Navigation */}
             <nav className="space-y-1">
-              {navItems.map((item, index) => {
+              {navItems.map((item) => {
                 const Icon = item.icon;
+                const active = isActive(item.href);
 
                 return (
                   <Link
                     key={item.title}
                     href={item.href}
-                    className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-all ${
-                      index === 0
-                        ? "bg-gradient-to-r from-purple-600/20 to-blue-600/10 text-white shadow-lg shadow-purple-900/10"
-                        : "text-zinc-500 hover:bg-white/[0.05] hover:text-white"
-                    }`}
+                    aria-current={
+                      active ? "page" : undefined
+                    }
+                    className={`
+                      group
+                      flex
+                      items-center
+                      gap-3
+                      rounded-2xl
+                      px-4
+                      py-3
+                      text-sm
+                      transition-all
+                      ${
+                        active
+                          ? "bg-gradient-to-r from-purple-600/20 to-blue-600/10 text-white shadow-lg shadow-purple-900/10"
+                          : "text-zinc-500 hover:bg-white/[0.05] hover:text-white"
+                      }
+                    `}
                   >
                     <Icon
                       size={18}
                       className={
-                        index === 0
+                        active
                           ? "text-purple-400"
                           : "text-zinc-600 group-hover:text-cyan-400"
                       }
@@ -364,7 +785,7 @@ export default function AdminDashboard() {
 
                     {item.title}
 
-                    {index === 0 && (
+                    {active && (
                       <span className="ml-auto h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee]" />
                     )}
                   </Link>
@@ -372,9 +793,21 @@ export default function AdminDashboard() {
               })}
             </nav>
 
-            {/* Bottom Card */}
-
-            <div className="mt-10 overflow-hidden rounded-3xl border border-purple-500/20 bg-gradient-to-br from-purple-600/10 via-blue-600/5 to-cyan-500/10 p-5">
+            {/* Security Card */}
+            <div
+              className="
+                mt-10
+                overflow-hidden
+                rounded-3xl
+                border
+                border-purple-500/20
+                bg-gradient-to-br
+                from-purple-600/10
+                via-blue-600/5
+                to-cyan-500/10
+                p-5
+              "
+            >
               <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400">
                 <ShieldCheck size={20} />
               </div>
@@ -384,7 +817,8 @@ export default function AdminDashboard() {
               </h3>
 
               <p className="mt-2 text-xs leading-5 text-zinc-500">
-                Your dashboard is protected with secure authentication.
+                Your dashboard is protected with secure
+                authentication.
               </p>
 
               <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/5">
@@ -398,15 +832,254 @@ export default function AdminDashboard() {
           </div>
         </aside>
 
-        {/* Main */}
+        {/* =================================================
+            MOBILE SIDEBAR
+        ================================================= */}
+
+        {mobileMenuOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+
+            {/* Overlay */}
+            <button
+              type="button"
+              aria-label="Close menu"
+              onClick={() =>
+                setMobileMenuOpen(false)
+              }
+              className="
+                absolute
+                inset-0
+                bg-black/70
+                backdrop-blur-sm
+              "
+            />
+
+            {/* Sidebar */}
+            <aside
+              ref={mobileSidebarRef}
+              className="
+                relative
+                z-10
+                h-full
+                w-80
+                max-w-[85vw]
+                border-r
+                border-white/10
+                bg-[#09090b]
+                p-5
+                shadow-2xl
+              "
+            >
+              <div className="flex h-full flex-col">
+
+                {/* Mobile Logo */}
+                <div className="mb-8 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black shadow-lg shadow-purple-500/20">
+                      <Image
+                        src="/logo.png"
+                        alt="Next Level School"
+                        width={42}
+                        height={42}
+                        className="h-10 w-10 object-contain"
+                      />
+                    </div>
+
+                    <div>
+                      <h1 className="font-bold tracking-tight">
+                        Next Level School
+                      </h1>
+
+                      <p className="text-xs text-zinc-500">
+                        Admin Console
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setMobileMenuOpen(false)
+                    }
+                    aria-label="Close navigation"
+                    className="
+                      rounded-xl
+                      border
+                      border-white/10
+                      bg-white/[0.04]
+                      p-2
+                      text-zinc-400
+                      transition
+                      hover:bg-white/10
+                      hover:text-white
+                    "
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Mobile Navigation */}
+                <nav className="flex-1 space-y-1 overflow-y-auto">
+                  {navItems.map((item) => {
+                    const Icon = item.icon;
+                    const active = isActive(item.href);
+
+                    return (
+                      <Link
+                        key={item.title}
+                        href={item.href}
+                        onClick={() =>
+                          setMobileMenuOpen(false)
+                        }
+                        aria-current={
+                          active ? "page" : undefined
+                        }
+                        className={`
+                          group
+                          flex
+                          items-center
+                          gap-3
+                          rounded-2xl
+                          px-4
+                          py-3
+                          text-sm
+                          transition
+                          ${
+                            active
+                              ? "bg-white/[0.07] text-white"
+                              : "text-zinc-500 hover:bg-white/[0.05] hover:text-white"
+                          }
+                        `}
+                      >
+                        <Icon
+                          size={18}
+                          className={
+                            active
+                              ? "text-purple-400"
+                              : "text-zinc-600 group-hover:text-cyan-400"
+                          }
+                        />
+
+                        {item.title}
+
+                        <ChevronRight
+                          size={15}
+                          className={`
+                            ml-auto
+                            transition
+                            ${
+                              active
+                                ? "text-cyan-400"
+                                : "text-zinc-700 group-hover:text-cyan-400"
+                            }
+                          `}
+                        />
+                      </Link>
+                    );
+                  })}
+                </nav>
+
+                {/* Mobile Admin Info */}
+                <div className="mt-5 border-t border-white/10 pt-5">
+                  <div className="mb-3 flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 font-bold uppercase">
+                      {adminInitial}
+                    </div>
+
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">
+                        {adminName}
+                      </p>
+
+                      <p className="truncate text-xs text-zinc-600">
+                        {admin?.email || ""}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    disabled={loggingOut}
+                    className="
+                      flex
+                      w-full
+                      items-center
+                      justify-center
+                      gap-2
+                      rounded-xl
+                      border
+                      border-red-500/10
+                      bg-red-500/[0.04]
+                      px-4
+                      py-3
+                      text-sm
+                      font-semibold
+                      text-red-400
+                      transition
+                      hover:bg-red-500/10
+                      disabled:cursor-not-allowed
+                      disabled:opacity-50
+                    "
+                  >
+                    <LogOut size={17} />
+
+                    {loggingOut
+                      ? "Logging out..."
+                      : "Logout"}
+                  </button>
+                </div>
+              </div>
+            </aside>
+          </div>
+        )}
+
+        {/* =================================================
+            MAIN
+        ================================================= */}
 
         <main className="min-w-0 flex-1">
-          {/* Header */}
 
-          <header className="dashboard-item sticky top-0 z-30 border-b border-white/10 bg-[#050507]/70 px-5 py-4 backdrop-blur-2xl lg:px-8">
+          {/* =================================================
+              HEADER
+          ================================================= */}
+
+          <header
+            className="
+              dashboard-item
+              sticky
+              top-0
+              z-30
+              border-b
+              border-white/10
+              bg-[#050507]/70
+              px-5
+              py-4
+              backdrop-blur-2xl
+              lg:px-8
+            "
+          >
             <div className="flex items-center justify-between gap-4">
+
+              {/* Left */}
               <div className="flex items-center gap-3">
-                <button className="rounded-xl border border-white/10 bg-white/[0.04] p-2.5 lg:hidden">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setMobileMenuOpen(true)
+                  }
+                  aria-label="Open navigation"
+                  className="
+                    rounded-xl
+                    border
+                    border-white/10
+                    bg-white/[0.04]
+                    p-2.5
+                    transition
+                    hover:bg-white/10
+                    lg:hidden
+                  "
+                >
                   <Menu size={19} />
                 </button>
 
@@ -421,14 +1094,38 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
+              {/* Search */}
               <div className="hidden w-full max-w-sm md:block">
-                <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-2.5">
-                  <Search size={17} className="text-zinc-600" />
+                <div
+                  className="
+                    flex
+                    items-center
+                    gap-3
+                    rounded-2xl
+                    border
+                    border-white/10
+                    bg-white/[0.035]
+                    px-4
+                    py-2.5
+                  "
+                >
+                  <Search
+                    size={17}
+                    className="text-zinc-600"
+                  />
 
                   <input
-                    type="text"
+                    type="search"
                     placeholder="Search anything..."
-                    className="w-full bg-transparent text-sm text-white outline-none placeholder:text-zinc-600"
+                    aria-label="Search dashboard"
+                    className="
+                      w-full
+                      bg-transparent
+                      text-sm
+                      text-white
+                      outline-none
+                      placeholder:text-zinc-600
+                    "
                   />
 
                   <span className="rounded-lg border border-white/10 px-2 py-1 text-[10px] text-zinc-600">
@@ -437,8 +1134,24 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
+              {/* Right */}
               <div className="flex items-center gap-2">
-                <button className="relative rounded-xl border border-white/10 bg-white/[0.04] p-2.5 text-zinc-400 transition hover:border-cyan-500/30 hover:text-cyan-400">
+                <button
+                  type="button"
+                  aria-label="Notifications"
+                  className="
+                    relative
+                    rounded-xl
+                    border
+                    border-white/10
+                    bg-white/[0.04]
+                    p-2.5
+                    text-zinc-400
+                    transition
+                    hover:border-cyan-500/30
+                    hover:text-cyan-400
+                  "
+                >
                   <Bell size={18} />
 
                   <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]" />
@@ -447,31 +1160,96 @@ export default function AdminDashboard() {
                 <div className="hidden h-9 w-px bg-white/10 sm:block" />
 
                 <div className="flex items-center gap-3">
+
+                  {/* User info */}
                   <div className="hidden text-right sm:block">
                     <p className="text-sm font-semibold">
-                      Admin
+                      {loadingAdmin
+                        ? "Loading..."
+                        : adminName}
                     </p>
 
                     <p className="text-[11px] text-zinc-600">
-                      Super Administrator
+                      {admin?.role === "admin"
+                        ? "Super Administrator"
+                        : "Administrator"}
                     </p>
                   </div>
 
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 text-sm font-bold shadow-lg shadow-purple-900/20">
-                    A
+                  {/* Avatar */}
+                  <div
+                    className="
+                      flex
+                      h-10
+                      w-10
+                      shrink-0
+                      items-center
+                      justify-center
+                      rounded-xl
+                      bg-gradient-to-br
+                      from-purple-600
+                      to-blue-600
+                      text-sm
+                      font-bold
+                      uppercase
+                      shadow-lg
+                      shadow-purple-900/20
+                    "
+                  >
+                    {adminInitial}
                   </div>
+
+                  {/* Logout */}
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    disabled={loggingOut}
+                    title="Logout"
+                    className="
+                      flex
+                      items-center
+                      gap-2
+                      rounded-xl
+                      border
+                      border-red-500/10
+                      bg-red-500/[0.04]
+                      px-3
+                      py-2.5
+                      text-red-400
+                      transition
+                      hover:border-red-500/30
+                      hover:bg-red-500/10
+                      hover:text-red-300
+                      disabled:cursor-not-allowed
+                      disabled:opacity-50
+                    "
+                  >
+                    <LogOut size={17} />
+
+                    <span className="hidden lg:inline">
+                      {loggingOut
+                        ? "Logging out..."
+                        : "Logout"}
+                    </span>
+                  </button>
                 </div>
               </div>
             </div>
           </header>
 
-          {/* Content */}
+          {/* =================================================
+              CONTENT
+          ================================================= */}
 
           <div className="mx-auto max-w-[1700px] p-5 lg:p-8">
-            {/* Welcome */}
+
+            {/* =================================================
+                WELCOME
+            ================================================= */}
 
             <section className="dashboard-item mb-7">
               <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
+
                 <div>
                   <div className="mb-2 flex items-center gap-2">
                     <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee]" />
@@ -482,35 +1260,67 @@ export default function AdminDashboard() {
                   </div>
 
                   <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                    Welcome back, Admin
-                    <span className="ml-2">👋</span>
+                    Welcome back, {adminName}
+                    <span className="ml-2">
+                      👋
+                    </span>
                   </h1>
 
                   <p className="mt-2 max-w-2xl text-sm text-zinc-500">
-                    Here&apos;s what&apos;s happening with Next Level
-                    School today.
+                    Here&apos;s what&apos;s happening with
+                    Next Level School today.
                   </p>
                 </div>
 
                 <Link
-                  href="/dashboard/admin/courses/create"
-                  className="group flex w-fit items-center gap-2 rounded-2xl bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-500 px-5 py-3 text-sm font-semibold shadow-xl shadow-purple-900/20 transition hover:scale-[1.02]"
+                  href="/dashboard/admin/courses"
+                  className="
+                    group
+                    flex
+                    w-fit
+                    items-center
+                    gap-2
+                    rounded-2xl
+                    bg-gradient-to-r
+                    from-purple-600
+                    via-blue-600
+                    to-cyan-500
+                    px-5
+                    py-3
+                    text-sm
+                    font-semibold
+                    shadow-xl
+                    shadow-purple-900/20
+                    transition
+                    hover:scale-[1.02]
+                  "
                 >
                   <Plus size={18} />
 
                   Add New Course
 
                   <ChevronRight
-                    size={16}
+                    size={18}
                     className="transition group-hover:translate-x-1"
                   />
                 </Link>
               </div>
             </section>
 
-            {/* Stats */}
+            {/* =================================================
+                STATS
+            ================================================= */}
 
-            <section className="mb-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <section
+              className="
+                mb-7
+                grid
+                grid-cols-1
+                gap-4
+                sm:grid-cols-2
+                xl:grid-cols-4
+              "
+            >
               <StatCard
                 title="Total Students"
                 value="2,480"
@@ -548,12 +1358,14 @@ export default function AdminDashboard() {
               />
             </section>
 
-            {/* Charts */}
+            {/* =================================================
+                ANALYTICS
+            ================================================= */}
 
             <section className="mb-7 grid gap-5 xl:grid-cols-[1.65fr_1fr]">
-              {/* Enrollment */}
 
-              <div className="chart-card rounded-3xl border border-white/10 bg-white/[0.035] p-5 backdrop-blur-xl lg:p-6">
+              {/* Enrollment */}
+              <div className="chart-card rounded-3xl border border-white/10 bg-white/[0.035] p-5 opacity-0 backdrop-blur-xl lg:p-6">
                 <div className="mb-6 flex items-start justify-between">
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wider text-purple-400">
@@ -569,13 +1381,20 @@ export default function AdminDashboard() {
                     </p>
                   </div>
 
-                  <button className="rounded-xl border border-white/10 p-2 text-zinc-500 transition hover:text-white">
+                  <button
+                    type="button"
+                    aria-label="More enrollment options"
+                    className="rounded-xl border border-white/10 p-2 text-zinc-500 transition hover:text-white"
+                  >
                     <MoreHorizontal size={18} />
                   </button>
                 </div>
 
                 <div className="h-[320px]">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer
+                    width="100%"
+                    height="100%"
+                  >
                     <AreaChart data={enrollmentData}>
                       <defs>
                         <linearGradient
@@ -632,7 +1451,8 @@ export default function AdminDashboard() {
                       <Tooltip
                         contentStyle={chartTooltipStyle}
                         cursor={{
-                          stroke: "rgba(168,85,247,0.3)",
+                          stroke:
+                            "rgba(168,85,247,0.3)",
                         }}
                       />
 
@@ -655,8 +1475,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Course Distribution */}
-
-              <div className="chart-card rounded-3xl border border-white/10 bg-white/[0.035] p-5 backdrop-blur-xl lg:p-6">
+              <div className="chart-card rounded-3xl border border-white/10 bg-white/[0.035] p-5 opacity-0 backdrop-blur-xl lg:p-6">
                 <div className="mb-3">
                   <p className="text-xs font-medium uppercase tracking-wider text-cyan-400">
                     Course Analytics
@@ -668,7 +1487,10 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="relative h-[260px]">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer
+                    width="100%"
+                    height="100%"
+                  >
                     <PieChart>
                       <Pie
                         data={courseData}
@@ -681,14 +1503,22 @@ export default function AdminDashboard() {
                         paddingAngle={4}
                         stroke="none"
                       >
-                        <Cell fill="#a855f7" />
-                        <Cell fill="#3b82f6" />
-                        <Cell fill="#22d3ee" />
-                        <Cell fill="#6366f1" />
+                        {courseData.map(
+                          (course, index) => (
+                            <Cell
+                              key={course.name}
+                              fill={
+                                courseColors[index]
+                              }
+                            />
+                          )
+                        )}
                       </Pie>
 
                       <Tooltip
-                        contentStyle={chartTooltipStyle}
+                        contentStyle={
+                          chartTooltipStyle
+                        }
                       />
                     </PieChart>
                   </ResponsiveContainer>
@@ -705,40 +1535,48 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  {courseData.map((course, index) => (
-                    <div
-                      key={course.name}
-                      className="flex items-center gap-2 rounded-xl bg-white/[0.03] p-2.5"
-                    >
-                      <span
-                        className="h-2.5 w-2.5 rounded-full"
-                        style={{
-                          backgroundColor: [
-                            "#a855f7",
-                            "#3b82f6",
-                            "#22d3ee",
-                            "#6366f1",
-                          ][index],
-                        }}
-                      />
+                  {courseData.map(
+                    (course, index) => (
+                      <div
+                        key={course.name}
+                        className="
+                          flex
+                          items-center
+                          gap-2
+                          rounded-xl
+                          bg-white/[0.03]
+                          p-2.5
+                        "
+                      >
+                        <span
+                          className="h-2.5 w-2.5 rounded-full"
+                          style={{
+                            backgroundColor:
+                              courseColors[index],
+                          }}
+                        />
 
-                      <span className="text-xs text-zinc-500">
-                        {course.name}
-                      </span>
+                        <span className="text-xs text-zinc-500">
+                          {course.name}
+                        </span>
 
-                      <span className="ml-auto text-xs font-semibold text-white">
-                        {course.value}%
-                      </span>
-                    </div>
-                  ))}
+                        <span className="ml-auto text-xs font-semibold text-white">
+                          {course.value}%
+                        </span>
+                      </div>
+                    )
+                  )}
                 </div>
               </div>
             </section>
 
-            {/* Revenue */}
+            {/* =================================================
+                REVENUE
+            ================================================= */}
 
             <section className="mb-7">
-              <div className="chart-card rounded-3xl border border-white/10 bg-white/[0.035] p-5 backdrop-blur-xl lg:p-6">
+              <div className="chart-card rounded-3xl border border-white/10 bg-white/[0.035] p-5 opacity-0 backdrop-blur-xl lg:p-6">
+
                 <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wider text-blue-400">
@@ -752,6 +1590,7 @@ export default function AdminDashboard() {
 
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-cyan-400" />
+
                     <span className="text-xs text-zinc-500">
                       Revenue
                     </span>
@@ -759,7 +1598,10 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer
+                    width="100%"
+                    height="100%"
+                  >
                     <BarChart data={revenueData}>
                       <CartesianGrid
                         stroke="rgba(255,255,255,0.05)"
@@ -784,15 +1626,20 @@ export default function AdminDashboard() {
                           fontSize: 11,
                         }}
                         tickFormatter={(value) =>
-                          `${value / 1000}k`
+                          `${Number(value) / 1000}k`
                         }
                       />
 
                       <Tooltip
-                        contentStyle={chartTooltipStyle}
-                        formatter={(value) =>
-                          `৳${Number(value).toLocaleString()}`
+                        contentStyle={
+                          chartTooltipStyle
                         }
+                        formatter={(value) => [
+                          `৳${Number(
+                            value
+                          ).toLocaleString()}`,
+                          "Revenue",
+                        ]}
                       />
 
                       <Bar
@@ -806,12 +1653,15 @@ export default function AdminDashboard() {
               </div>
             </section>
 
-            {/* Course Performance + Recent */}
+            {/* =================================================
+                COURSE PERFORMANCE + RECENT ENROLLMENTS
+            ================================================= */}
 
             <section className="grid gap-5 xl:grid-cols-2">
-              {/* Performance */}
 
-              <div className="chart-card rounded-3xl border border-white/10 bg-white/[0.035] p-5 backdrop-blur-xl lg:p-6">
+              {/* Course Performance */}
+              <div className="chart-card rounded-3xl border border-white/10 bg-white/[0.035] p-5 opacity-0 backdrop-blur-xl lg:p-6">
+
                 <div className="mb-6 flex items-center justify-between">
                   <div>
                     <p className="text-xs uppercase tracking-wider text-purple-400">
@@ -825,48 +1675,59 @@ export default function AdminDashboard() {
 
                   <Link
                     href="/dashboard/admin/courses"
-                    className="text-xs font-semibold text-cyan-400 hover:text-cyan-300"
+                    className="text-xs font-semibold text-cyan-400 transition hover:text-cyan-300"
                   >
                     View all
                   </Link>
                 </div>
 
                 <div className="space-y-5">
-                  {coursePerformance.map((course) => (
-                    <div key={course.title}>
-                      <div className="mb-2 flex items-center justify-between gap-4">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold">
-                            {course.title}
-                          </p>
+                  {coursePerformance.map(
+                    (course) => (
+                      <div key={course.title}>
+                        <div className="mb-2 flex items-center justify-between gap-4">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold">
+                              {course.title}
+                            </p>
 
-                          <p className="mt-1 text-xs text-zinc-600">
-                            {course.students} students •{" "}
-                            {course.category}
-                          </p>
+                            <p className="mt-1 text-xs text-zinc-600">
+                              {course.students} students
+                              {" • "}
+                              {course.category}
+                            </p>
+                          </div>
+
+                          <span className="text-sm font-bold text-cyan-400">
+                            {course.progress}%
+                          </span>
                         </div>
 
-                        <span className="text-sm font-bold text-cyan-400">
-                          {course.progress}%
-                        </span>
+                        <div className="h-2 overflow-hidden rounded-full bg-white/[0.06]">
+                          <div
+                            className="
+                              h-full
+                              rounded-full
+                              bg-gradient-to-r
+                              from-purple-500
+                              via-blue-500
+                              to-cyan-400
+                              transition-all
+                            "
+                            style={{
+                              width: `${course.progress}%`,
+                            }}
+                          />
+                        </div>
                       </div>
-
-                      <div className="h-2 overflow-hidden rounded-full bg-white/[0.06]">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-400 transition-all"
-                          style={{
-                            width: `${course.progress}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  )}
                 </div>
               </div>
 
-              {/* Recent Enrollment */}
+              {/* Recent Enrollments */}
+              <div className="chart-card rounded-3xl border border-white/10 bg-white/[0.035] p-5 opacity-0 backdrop-blur-xl lg:p-6">
 
-              <div className="chart-card rounded-3xl border border-white/10 bg-white/[0.035] p-5 backdrop-blur-xl lg:p-6">
                 <div className="mb-6 flex items-center justify-between">
                   <div>
                     <p className="text-xs uppercase tracking-wider text-cyan-400">
@@ -878,61 +1739,126 @@ export default function AdminDashboard() {
                     </h2>
                   </div>
 
-                  <button className="text-xs font-semibold text-cyan-400">
+                  <Link
+                    href="/dashboard/admin/enrollments"
+                    className="text-xs font-semibold text-cyan-400 transition hover:text-cyan-300"
+                  >
                     View all
-                  </button>
+                  </Link>
                 </div>
 
                 <div className="space-y-3">
-                  {recentEnrollments.map((student) => (
-                    <div
-                      key={student.name}
-                      className="group flex items-center gap-3 rounded-2xl border border-transparent bg-white/[0.025] p-3 transition hover:border-white/10 hover:bg-white/[0.05]"
-                    >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600/30 to-blue-600/30 text-xs font-bold text-purple-300">
-                        {student.initials}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold">
-                          {student.name}
-                        </p>
-
-                        <p className="mt-1 truncate text-xs text-zinc-600">
-                          {student.course}
-                        </p>
-                      </div>
-
-                      <div className="text-right">
-                        <p className="text-sm font-semibold">
-                          {student.amount}
-                        </p>
-
-                        <span
-                          className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                            student.status === "Active"
-                              ? "bg-cyan-400/10 text-cyan-400"
-                              : "bg-yellow-400/10 text-yellow-400"
-                          }`}
+                  {recentEnrollments.map(
+                    (student) => (
+                      <Link
+                        key={student.name}
+                        href="/dashboard/admin/enrollments"
+                        className="
+                          group
+                          flex
+                          items-center
+                          gap-3
+                          rounded-2xl
+                          border
+                          border-transparent
+                          bg-white/[0.025]
+                          p-3
+                          transition
+                          hover:border-white/10
+                          hover:bg-white/[0.05]
+                        "
+                      >
+                        <div
+                          className="
+                            flex
+                            h-10
+                            w-10
+                            shrink-0
+                            items-center
+                            justify-center
+                            rounded-xl
+                            bg-gradient-to-br
+                            from-purple-600/30
+                            to-blue-600/30
+                            text-xs
+                            font-bold
+                            text-purple-300
+                          "
                         >
-                          {student.status}
-                        </span>
-                      </div>
+                          {student.initials}
+                        </div>
 
-                      <ChevronRight
-                        size={15}
-                        className="text-zinc-700 transition group-hover:translate-x-1 group-hover:text-cyan-400"
-                      />
-                    </div>
-                  ))}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold">
+                            {student.name}
+                          </p>
+
+                          <p className="mt-1 truncate text-xs text-zinc-600">
+                            {student.course}
+                          </p>
+                        </div>
+
+                        <div className="text-right">
+                          <p className="text-sm font-semibold">
+                            {student.amount}
+                          </p>
+
+                          <span
+                            className={`
+                              mt-1
+                              inline-block
+                              rounded-full
+                              px-2
+                              py-0.5
+                              text-[10px]
+                              font-semibold
+                              ${
+                                student.status ===
+                                "Active"
+                                  ? "bg-cyan-400/10 text-cyan-400"
+                                  : "bg-yellow-400/10 text-yellow-400"
+                              }
+                            `}
+                          >
+                            {student.status}
+                          </span>
+                        </div>
+
+                        <ChevronRight
+                          size={15}
+                          className="
+                            text-zinc-700
+                            transition
+                            group-hover:translate-x-1
+                            group-hover:text-cyan-400
+                          "
+                        />
+                      </Link>
+                    )
+                  )}
                 </div>
               </div>
             </section>
 
-            {/* Quick Actions */}
+            {/* =================================================
+                QUICK ACTIONS
+            ================================================= */}
 
             <section className="dashboard-item mt-7">
-              <div className="rounded-3xl border border-white/10 bg-gradient-to-r from-purple-600/[0.08] via-blue-600/[0.05] to-cyan-500/[0.08] p-5 backdrop-blur-xl lg:p-6">
+              <div
+                className="
+                  rounded-3xl
+                  border
+                  border-white/10
+                  bg-gradient-to-r
+                  from-purple-600/[0.08]
+                  via-blue-600/[0.05]
+                  to-cyan-500/[0.08]
+                  p-5
+                  backdrop-blur-xl
+                  lg:p-6
+                "
+              >
                 <div className="mb-5">
                   <h2 className="text-lg font-bold">
                     Quick Actions
@@ -944,9 +1870,25 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+
+                  {/* Add Course */}
                   <Link
-                    href="/dashboard/admin/courses/create"
-                    className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition hover:-translate-y-1 hover:border-purple-500/30 hover:bg-purple-500/10"
+                    href="/dashboard/admin/courses"
+                    className="
+                      group
+                      flex
+                      items-center
+                      gap-3
+                      rounded-2xl
+                      border
+                      border-white/10
+                      bg-white/[0.04]
+                      p-4
+                      transition
+                      hover:-translate-y-1
+                      hover:border-purple-500/30
+                      hover:bg-purple-500/10
+                    "
                   >
                     <div className="rounded-xl bg-purple-500/10 p-2.5 text-purple-400">
                       <Plus size={18} />
@@ -963,9 +1905,24 @@ export default function AdminDashboard() {
                     </div>
                   </Link>
 
+                  {/* Students */}
                   <Link
                     href="/dashboard/admin/students"
-                    className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition hover:-translate-y-1 hover:border-blue-500/30 hover:bg-blue-500/10"
+                    className="
+                      group
+                      flex
+                      items-center
+                      gap-3
+                      rounded-2xl
+                      border
+                      border-white/10
+                      bg-white/[0.04]
+                      p-4
+                      transition
+                      hover:-translate-y-1
+                      hover:border-blue-500/30
+                      hover:bg-blue-500/10
+                    "
                   >
                     <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-400">
                       <Users size={18} />
@@ -982,9 +1939,24 @@ export default function AdminDashboard() {
                     </div>
                   </Link>
 
+                  {/* Enrollments */}
                   <Link
                     href="/dashboard/admin/enrollments"
-                    className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition hover:-translate-y-1 hover:border-cyan-500/30 hover:bg-cyan-500/10"
+                    className="
+                      group
+                      flex
+                      items-center
+                      gap-3
+                      rounded-2xl
+                      border
+                      border-white/10
+                      bg-white/[0.04]
+                      p-4
+                      transition
+                      hover:-translate-y-1
+                      hover:border-cyan-500/30
+                      hover:bg-cyan-500/10
+                    "
                   >
                     <div className="rounded-xl bg-cyan-500/10 p-2.5 text-cyan-400">
                       <GraduationCap size={18} />
@@ -1001,9 +1973,24 @@ export default function AdminDashboard() {
                     </div>
                   </Link>
 
+                  {/* Analytics */}
                   <Link
                     href="/dashboard/admin/analytics"
-                    className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition hover:-translate-y-1 hover:border-fuchsia-500/30 hover:bg-fuchsia-500/10"
+                    className="
+                      group
+                      flex
+                      items-center
+                      gap-3
+                      rounded-2xl
+                      border
+                      border-white/10
+                      bg-white/[0.04]
+                      p-4
+                      transition
+                      hover:-translate-y-1
+                      hover:border-fuchsia-500/30
+                      hover:bg-fuchsia-500/10
+                    "
                   >
                     <div className="rounded-xl bg-fuchsia-500/10 p-2.5 text-fuchsia-400">
                       <TrendingUp size={18} />
@@ -1023,7 +2010,9 @@ export default function AdminDashboard() {
               </div>
             </section>
 
-            {/* Footer */}
+            {/* =================================================
+                FOOTER
+            ================================================= */}
 
             <footer className="dashboard-item py-8 text-center text-xs text-zinc-700">
               © 2026 Next Level School • Admin Console
