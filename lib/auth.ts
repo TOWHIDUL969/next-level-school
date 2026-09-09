@@ -36,6 +36,10 @@ export async function getCurrentUser() {
   };
 }
 
+/**
+ * Protected pages
+ * User না থাকলে login page এ redirect করবে
+ */
 export async function requireUser() {
   const user = await getCurrentUser();
 
@@ -45,11 +49,38 @@ export async function requireUser() {
 
   return user;
 }
+
+/**
+ * Admin protected pages
+ * Admin না হলে dashboard এ redirect করবে
+ */
 export async function requireAdmin() {
   const user = await requireUser();
 
   if (user.role !== "admin") {
     redirect("/dashboard");
+  }
+
+  return user;
+}
+
+/**
+ * API routes এর জন্য
+ * Redirect করবে না।
+ *
+ * User না থাকলে null
+ * Admin না হলে null
+ * Admin হলে user return করবে
+ */
+export async function requireAdminApi() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return null;
+  }
+
+  if (user.role !== "admin") {
+    return null;
   }
 
   return user;

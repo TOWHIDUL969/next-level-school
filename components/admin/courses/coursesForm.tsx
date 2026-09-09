@@ -1,6 +1,8 @@
+
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
+
 import {
   X,
   Upload,
@@ -10,18 +12,41 @@ import {
   Send,
 } from "lucide-react";
 
+interface Course {
+  _id: string;
+  title: string;
+  slug: string;
+  shortDescription: string;
+  description: string;
+  thumbnail: string;
+  category: string;
+  level: "Beginner" | "Intermediate" | "Advanced";
+  duration: number;
+  price: number;
+  instructor: {
+    name: string;
+    email?: string;
+  };
+  totalLessons: number;
+  status: "draft" | "published";
+  createdAt: string;
+}
+
 interface CourseFormProps {
+  course?: Course | null;
   onClose: () => void;
   onSuccess: () => void;
 }
 
 export default function CourseForm({
+  course,
   onClose,
   onSuccess,
 }: CourseFormProps) {
+  const isEditMode = Boolean(course);
+
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-
   const [thumbnail, setThumbnail] = useState("");
 
   const [form, setForm] = useState({
@@ -38,6 +63,44 @@ export default function CourseForm({
     totalLessons: "",
   });
 
+  // Load existing course data in Edit mode
+  useEffect(() => {
+    if (!course) {
+      setForm({
+        title: "",
+        slug: "",
+        shortDescription: "",
+        description: "",
+        category: "",
+        level: "Beginner",
+        duration: "",
+        price: "",
+        instructorName: "",
+        instructorEmail: "",
+        totalLessons: "",
+      });
+
+      setThumbnail("");
+      return;
+    }
+
+    setForm({
+      title: course.title || "",
+      slug: course.slug || "",
+      shortDescription: course.shortDescription || "",
+      description: course.description || "",
+      category: course.category || "",
+      level: course.level || "Beginner",
+      duration: String(course.duration ?? ""),
+      price: String(course.price ?? ""),
+      instructorName: course.instructor?.name || "",
+      instructorEmail: course.instructor?.email || "",
+      totalLessons: String(course.totalLessons ?? ""),
+    });
+
+    setThumbnail(course.thumbnail || "");
+  }, [course]);
+
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -50,7 +113,7 @@ export default function CourseForm({
       [name]: value,
     }));
 
-    // Auto generate slug
+    // Auto generate slug only when title changes
     if (name === "title") {
       const slug = value
         .toLowerCase()
@@ -76,11 +139,13 @@ export default function CourseForm({
 
     if (!file.type.startsWith("image/")) {
       alert("Please select an image file.");
+      e.target.value = "";
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
       alert("Image size must be less than 5MB.");
+      e.target.value = "";
       return;
     }
 
@@ -97,13 +162,16 @@ export default function CourseForm({
 
       const data = await response.json();
 
-      if (!response.ok) {
+      if (!response.ok || !data.success || !data.url) {
         throw new Error(data.message || "Upload failed");
       }
 
-      setThumbnail(data.secure_url);
+      setThumbnail(data.url);
+
+      console.log("Cloudinary upload successful:", data.url);
     } catch (error) {
       console.error("Thumbnail upload error:", error);
+
       alert(
         error instanceof Error
           ? error.message
@@ -111,6 +179,7 @@ export default function CourseForm({
       );
     } finally {
       setUploading(false);
+      e.target.value = "";
     }
   };
 
@@ -125,49 +194,89 @@ export default function CourseForm({
       return;
     }
 
+    if (!form.title.trim()) {
+      alert("Please enter course title.");
+      return;
+    }
+
+    if (!form.category.trim()) {
+      alert("Please enter course category.");
+      return;
+    }
+
+    if (!form.duration || Number(form.duration) <= 0) {
+      alert("Please enter a valid course duration.");
+      return;
+    }
+
+    if (!form.totalLessons || Number(form.totalLessons) <= 0) {
+      alert("Please enter total lessons.");
+      return;
+    }
+
     try {
       setLoading(true);
 
-      const response = await fetch("/api/courses", {
-        method: "POST",
+      const payload = {
+        title: form.title.trim(),
+        slug: form.slug.trim(),
+        shortDescription: form.shortDescription.trim(),
+        description: form.description.trim(),
+        thumbnail,
+        category: form.category.trim(),
+        level: form.level,
+        duration: Number(form.duration),
+        price: Number(form.price),
+        instructor: {
+          name: form.instructorName.trim(),
+          email: form.instructorEmail.trim() || undefined,
+        },
+        totalLessons: Number(form.totalLessons),
+        status,
+      };
+
+      const url = isEditMode
+        ? `/api/courses?id=${course?._id}`
+        : "/api/courses";
+
+      const method = isEditMode ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          title: form.title,
-          slug: form.slug,
-          shortDescription: form.shortDescription,
-          description: form.description,
-          thumbnail,
-          category: form.category,
-          level: form.level,
-          duration: Number(form.duration),
-          price: Number(form.price),
-          instructor: {
-            name: form.instructorName,
-            email: form.instructorEmail || undefined,
-          },
-          totalLessons: Number(form.totalLessons),
-          status,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to create course");
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.message ||
+            (isEditMode
+              ? "Failed to update course"
+              : "Failed to create course")
+        );
       }
 
       alert(
-        status === "published"
-          ? "Course published successfully!"
-          : "Course saved as draft!"
+        isEditMode
+          ? status === "published"
+            ? "Course updated and published successfully!"
+            : "Course updated and saved as draft!"
+          : status === "published"
+            ? "Course published successfully!"
+            : "Course saved as draft!"
       );
 
       onSuccess();
       onClose();
     } catch (error) {
-      console.error("Create course error:", error);
+      console.error(
+        isEditMode ? "Update course error:" : "Create course error:",
+        error
+      );
 
       alert(
         error instanceof Error
@@ -185,18 +294,21 @@ export default function CourseForm({
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white">
-            Create New Course
+            {isEditMode ? "Edit Course" : "Create New Course"}
           </h2>
 
           <p className="mt-1 text-sm text-zinc-500">
-            Add complete information about your course.
+            {isEditMode
+              ? "Update your course information and thumbnail."
+              : "Add complete information about your course."}
           </p>
         </div>
 
         <button
           type="button"
           onClick={onClose}
-          className="rounded-xl border border-white/10 bg-white/[0.03] p-2.5 text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          disabled={loading || uploading}
+          className="rounded-xl border border-white/10 bg-white/[0.03] p-2.5 text-zinc-400 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
         >
           <X size={20} />
         </button>
@@ -220,7 +332,8 @@ export default function CourseForm({
               <button
                 type="button"
                 onClick={() => setThumbnail("")}
-                className="absolute right-3 top-3 rounded-xl bg-black/70 p-2 text-white backdrop-blur transition hover:bg-red-500"
+                disabled={loading || uploading}
+                className="absolute right-3 top-3 rounded-xl bg-black/70 p-2 text-white backdrop-blur transition hover:bg-red-500 disabled:opacity-50"
               >
                 <X size={18} />
               </button>
@@ -245,7 +358,9 @@ export default function CourseForm({
                   </div>
 
                   <p className="font-medium text-zinc-300">
-                    Upload Course Thumbnail
+                    {isEditMode
+                      ? "Upload New Thumbnail"
+                      : "Upload Course Thumbnail"}
                   </p>
 
                   <p className="mt-1 text-xs text-zinc-500">
@@ -258,7 +373,7 @@ export default function CourseForm({
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
                 onChange={handleThumbnailUpload}
-                disabled={uploading}
+                disabled={uploading || loading}
                 className="hidden"
               />
             </label>
@@ -430,7 +545,7 @@ export default function CourseForm({
               <ImageIcon size={17} />
             </div>
 
-            <h3 className="font-semibold">
+            <h3 className="font-semibold text-white">
               Instructor Information
             </h3>
           </div>
@@ -496,7 +611,7 @@ export default function CourseForm({
               <Save size={17} />
             )}
 
-            Save Draft
+            {isEditMode ? "Update Draft" : "Save Draft"}
           </button>
 
           <button
@@ -516,7 +631,7 @@ export default function CourseForm({
               <Send size={17} />
             )}
 
-            Publish Course
+            {isEditMode ? "Update & Publish" : "Publish Course"}
           </button>
         </div>
       </form>
@@ -551,3 +666,4 @@ export default function CourseForm({
     </div>
   );
 }
+

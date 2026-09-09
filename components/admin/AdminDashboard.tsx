@@ -11,7 +11,6 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
 import gsap from "gsap";
 
 import {
@@ -487,9 +486,16 @@ export default function AdminDashboard() {
     if (!dashboardRef.current) return;
 
     const ctx = gsap.context(() => {
-      const prefersReducedMotion = window.matchMedia(
-        "(prefers-reduced-motion: reduce)"
-      ).matches;
+      const prefersReducedMotion = window
+        .matchMedia("(prefers-reduced-motion: reduce)")
+        .matches;
+
+      /*
+       * IMPORTANT:
+       * Sidebar এবং Header intentionally এখানে নেই।
+       * কারণ GSAP transform করলে fixed/sticky positioning
+       * কিছু browser-এ unexpected behavior করতে পারে।
+       */
 
       const dashboardItems =
         gsap.utils.toArray<HTMLElement>(
@@ -575,6 +581,7 @@ export default function AdminDashboard() {
         );
 
       /* Floating background glow */
+
       gsap.to(".floating-glow", {
         x: 80,
         y: 40,
@@ -623,6 +630,22 @@ export default function AdminDashboard() {
   }, [pathname]);
 
   /* =======================================================
+     LOCK BODY SCROLL WHEN MOBILE MENU IS OPEN
+  ======================================================= */
+
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileMenuOpen]);
+
+  /* =======================================================
      ACTIVE NAV
   ======================================================= */
 
@@ -651,7 +674,7 @@ export default function AdminDashboard() {
     <div
       ref={dashboardRef}
       className="
-        min-h-screen
+        h-screen
         overflow-hidden
         bg-[#050507]
         text-white
@@ -661,7 +684,7 @@ export default function AdminDashboard() {
           BACKGROUND
       =================================================== */}
 
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
         <div className="floating-glow absolute -left-32 -top-32 h-96 w-96 rounded-full bg-purple-600/20 blur-[140px]" />
 
         <div className="floating-glow absolute right-0 top-1/3 h-96 w-96 rounded-full bg-blue-600/15 blur-[140px]" />
@@ -683,30 +706,31 @@ export default function AdminDashboard() {
           MAIN LAYOUT
       =================================================== */}
 
-      <div className="relative flex min-h-screen">
-
+      <div className="relative z-10 flex h-full min-h-0">
         {/* =================================================
             DESKTOP SIDEBAR
         ================================================= */}
 
         <aside
           className="
-            dashboard-item
+            fixed
+            inset-y-0
+            left-0
+            z-40
             hidden
             w-72
-            shrink-0
             border-r
             border-white/10
-            bg-black/20
-            p-5
+            bg-[#08080b]/90
             backdrop-blur-2xl
-            lg:block
+            lg:flex
+            lg:flex-col
           "
         >
-          <div className="sticky top-5">
+          {/* Sidebar Header / Logo */}
 
-            {/* Logo */}
-            <div className="mb-10 flex items-center gap-3">
+          <div className="shrink-0 p-5 pb-0">
+            <div className="mb-8 flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black shadow-lg shadow-purple-500/20">
                 <Image
                   src="/logo.png"
@@ -728,8 +752,24 @@ export default function AdminDashboard() {
                 </p>
               </div>
             </div>
+          </div>
 
+          {/* Scrollable Sidebar Content */}
+
+          <div
+            className="
+              min-h-0
+              flex-1
+              overflow-y-auto
+              overscroll-contain
+              px-5
+              pb-6
+              [scrollbar-width:thin]
+              [scrollbar-color:rgba(255,255,255,0.12)_transparent]
+            "
+          >
             {/* Navigation Label */}
+
             <p
               className="
                 mb-3
@@ -745,6 +785,7 @@ export default function AdminDashboard() {
             </p>
 
             {/* Navigation */}
+
             <nav className="space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -783,7 +824,7 @@ export default function AdminDashboard() {
                       }
                     />
 
-                    {item.title}
+                    <span>{item.title}</span>
 
                     {active && (
                       <span className="ml-auto h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee]" />
@@ -794,9 +835,10 @@ export default function AdminDashboard() {
             </nav>
 
             {/* Security Card */}
+
             <div
               className="
-                mt-10
+                mt-8
                 overflow-hidden
                 rounded-3xl
                 border
@@ -837,15 +879,13 @@ export default function AdminDashboard() {
         ================================================= */}
 
         {mobileMenuOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden">
-
+          <div className="fixed inset-0 z-[60] lg:hidden">
             {/* Overlay */}
+
             <button
               type="button"
               aria-label="Close menu"
-              onClick={() =>
-                setMobileMenuOpen(false)
-              }
+              onClick={() => setMobileMenuOpen(false)}
               className="
                 absolute
                 inset-0
@@ -855,71 +895,109 @@ export default function AdminDashboard() {
             />
 
             {/* Sidebar */}
+
             <aside
               ref={mobileSidebarRef}
               className="
                 relative
                 z-10
+                flex
                 h-full
                 w-80
                 max-w-[85vw]
+                min-h-0
+                flex-col
                 border-r
                 border-white/10
                 bg-[#09090b]
-                p-5
                 shadow-2xl
               "
             >
-              <div className="flex h-full flex-col">
+              {/* Mobile Sidebar Header */}
 
-                {/* Mobile Logo */}
-                <div className="mb-8 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black shadow-lg shadow-purple-500/20">
-                      <Image
-                        src="/logo.png"
-                        alt="Next Level School"
-                        width={42}
-                        height={42}
-                        className="h-10 w-10 object-contain"
-                      />
-                    </div>
-
-                    <div>
-                      <h1 className="font-bold tracking-tight">
-                        Next Level School
-                      </h1>
-
-                      <p className="text-xs text-zinc-500">
-                        Admin Console
-                      </p>
-                    </div>
+              <div
+                className="
+                  flex
+                  shrink-0
+                  items-center
+                  justify-between
+                  border-b
+                  border-white/10
+                  p-5
+                "
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black shadow-lg shadow-purple-500/20">
+                    <Image
+                      src="/logo.png"
+                      alt="Next Level School"
+                      width={42}
+                      height={42}
+                      className="h-10 w-10 object-contain"
+                    />
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setMobileMenuOpen(false)
-                    }
-                    aria-label="Close navigation"
-                    className="
-                      rounded-xl
-                      border
-                      border-white/10
-                      bg-white/[0.04]
-                      p-2
-                      text-zinc-400
-                      transition
-                      hover:bg-white/10
-                      hover:text-white
-                    "
-                  >
-                    <X size={18} />
-                  </button>
+                  <div>
+                    <h1 className="font-bold tracking-tight">
+                      Next Level School
+                    </h1>
+
+                    <p className="text-xs text-zinc-500">
+                      Admin Console
+                    </p>
+                  </div>
                 </div>
 
-                {/* Mobile Navigation */}
-                <nav className="flex-1 space-y-1 overflow-y-auto">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setMobileMenuOpen(false)
+                  }
+                  aria-label="Close navigation"
+                  className="
+                    rounded-xl
+                    border
+                    border-white/10
+                    bg-white/[0.04]
+                    p-2
+                    text-zinc-400
+                    transition
+                    hover:bg-white/10
+                    hover:text-white
+                  "
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Mobile Navigation Scroll Area */}
+
+              <div
+                className="
+                  min-h-0
+                  flex-1
+                  overflow-y-auto
+                  overscroll-contain
+                  p-5
+                  [scrollbar-width:thin]
+                  [scrollbar-color:rgba(255,255,255,0.12)_transparent]
+                "
+              >
+                <p
+                  className="
+                    mb-3
+                    px-3
+                    text-[10px]
+                    font-bold
+                    uppercase
+                    tracking-[0.2em]
+                    text-zinc-600
+                  "
+                >
+                  Management
+                </p>
+
+                <nav className="space-y-1">
                   {navItems.map((item) => {
                     const Icon = item.icon;
                     const active = isActive(item.href);
@@ -960,7 +1038,7 @@ export default function AdminDashboard() {
                           }
                         />
 
-                        {item.title}
+                        <span>{item.title}</span>
 
                         <ChevronRight
                           size={15}
@@ -979,56 +1057,116 @@ export default function AdminDashboard() {
                   })}
                 </nav>
 
-                {/* Mobile Admin Info */}
-                <div className="mt-5 border-t border-white/10 pt-5">
-                  <div className="mb-3 flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 font-bold uppercase">
-                      {adminInitial}
-                    </div>
+                {/* Mobile Security Card */}
 
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">
-                        {adminName}
-                      </p>
-
-                      <p className="truncate text-xs text-zinc-600">
-                        {admin?.email || ""}
-                      </p>
-                    </div>
+                <div
+                  className="
+                    mt-8
+                    rounded-3xl
+                    border
+                    border-purple-500/20
+                    bg-gradient-to-br
+                    from-purple-600/10
+                    via-blue-600/5
+                    to-cyan-500/10
+                    p-5
+                  "
+                >
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400">
+                    <ShieldCheck size={20} />
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    disabled={loggingOut}
+                  <h3 className="text-sm font-semibold">
+                    Admin Security
+                  </h3>
+
+                  <p className="mt-2 text-xs leading-5 text-zinc-500">
+                    Your dashboard is protected with secure
+                    authentication.
+                  </p>
+
+                  <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/5">
+                    <div className="h-full w-[92%] rounded-full bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-400" />
+                  </div>
+
+                  <p className="mt-2 text-[11px] text-cyan-400">
+                    Security status: Excellent
+                  </p>
+                </div>
+              </div>
+
+              {/* Mobile Admin Info */}
+
+              <div
+                className="
+                  shrink-0
+                  border-t
+                  border-white/10
+                  p-5
+                "
+              >
+                <div className="mb-3 flex items-center gap-3">
+                  <div
                     className="
                       flex
-                      w-full
+                      h-10
+                      w-10
+                      shrink-0
                       items-center
                       justify-center
-                      gap-2
                       rounded-xl
-                      border
-                      border-red-500/10
-                      bg-red-500/[0.04]
-                      px-4
-                      py-3
-                      text-sm
-                      font-semibold
-                      text-red-400
-                      transition
-                      hover:bg-red-500/10
-                      disabled:cursor-not-allowed
-                      disabled:opacity-50
+                      bg-gradient-to-br
+                      from-purple-600
+                      to-blue-600
+                      font-bold
+                      uppercase
                     "
                   >
-                    <LogOut size={17} />
+                    {adminInitial}
+                  </div>
 
-                    {loggingOut
-                      ? "Logging out..."
-                      : "Logout"}
-                  </button>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">
+                      {adminName}
+                    </p>
+
+                    <p className="truncate text-xs text-zinc-600">
+                      {admin?.email || ""}
+                    </p>
+                  </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                  className="
+                    flex
+                    w-full
+                    items-center
+                    justify-center
+                    gap-2
+                    rounded-xl
+                    border
+                    border-red-500/10
+                    bg-red-500/[0.04]
+                    px-4
+                    py-3
+                    text-sm
+                    font-semibold
+                    text-red-400
+                    transition
+                    hover:bg-red-500/10
+                    disabled:cursor-not-allowed
+                    disabled:opacity-50
+                  "
+                >
+                  <LogOut size={17} />
+
+                  {loggingOut
+                    ? "Logging out..."
+                    : "Logout"}
+                </button>
               </div>
             </aside>
           </div>
@@ -1038,21 +1176,28 @@ export default function AdminDashboard() {
             MAIN
         ================================================= */}
 
-        <main className="min-w-0 flex-1">
-
+        <main
+          className="
+            min-h-0
+            min-w-0
+            flex-1
+            overflow-y-auto
+            overscroll-contain
+            lg:ml-72
+          "
+        >
           {/* =================================================
               HEADER
           ================================================= */}
 
           <header
             className="
-              dashboard-item
               sticky
               top-0
               z-30
               border-b
               border-white/10
-              bg-[#050507]/70
+              bg-[#050507]/85
               px-5
               py-4
               backdrop-blur-2xl
@@ -1060,8 +1205,8 @@ export default function AdminDashboard() {
             "
           >
             <div className="flex items-center justify-between gap-4">
-
               {/* Left */}
+
               <div className="flex items-center gap-3">
                 <button
                   type="button"
@@ -1095,6 +1240,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Search */}
+
               <div className="hidden w-full max-w-sm md:block">
                 <div
                   className="
@@ -1135,6 +1281,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Right */}
+
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -1160,8 +1307,8 @@ export default function AdminDashboard() {
                 <div className="hidden h-9 w-px bg-white/10 sm:block" />
 
                 <div className="flex items-center gap-3">
-
                   {/* User info */}
+
                   <div className="hidden text-right sm:block">
                     <p className="text-sm font-semibold">
                       {loadingAdmin
@@ -1177,6 +1324,7 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* Avatar */}
+
                   <div
                     className="
                       flex
@@ -1200,6 +1348,7 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* Logout */}
+
                   <button
                     type="button"
                     onClick={handleLogout}
@@ -1242,14 +1391,12 @@ export default function AdminDashboard() {
           ================================================= */}
 
           <div className="mx-auto max-w-[1700px] p-5 lg:p-8">
-
             {/* =================================================
                 WELCOME
             ================================================= */}
 
             <section className="dashboard-item mb-7">
               <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
-
                 <div>
                   <div className="mb-2 flex items-center gap-2">
                     <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee]" />
@@ -1261,6 +1408,7 @@ export default function AdminDashboard() {
 
                   <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
                     Welcome back, {adminName}
+
                     <span className="ml-2">
                       👋
                     </span>
@@ -1363,8 +1511,8 @@ export default function AdminDashboard() {
             ================================================= */}
 
             <section className="mb-7 grid gap-5 xl:grid-cols-[1.65fr_1fr]">
-
               {/* Enrollment */}
+
               <div className="chart-card rounded-3xl border border-white/10 bg-white/[0.035] p-5 opacity-0 backdrop-blur-xl lg:p-6">
                 <div className="mb-6 flex items-start justify-between">
                   <div>
@@ -1475,6 +1623,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Course Distribution */}
+
               <div className="chart-card rounded-3xl border border-white/10 bg-white/[0.035] p-5 opacity-0 backdrop-blur-xl lg:p-6">
                 <div className="mb-3">
                   <p className="text-xs font-medium uppercase tracking-wider text-cyan-400">
@@ -1576,7 +1725,6 @@ export default function AdminDashboard() {
 
             <section className="mb-7">
               <div className="chart-card rounded-3xl border border-white/10 bg-white/[0.035] p-5 opacity-0 backdrop-blur-xl lg:p-6">
-
                 <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wider text-blue-400">
@@ -1603,6 +1751,31 @@ export default function AdminDashboard() {
                     height="100%"
                   >
                     <BarChart data={revenueData}>
+                      <defs>
+                        <linearGradient
+                          id="revenueGradient"
+                          x1="0"
+                          y1="1"
+                          x2="0"
+                          y2="0"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor="#22d3ee"
+                          />
+
+                          <stop
+                            offset="50%"
+                            stopColor="#60a5fa"
+                          />
+
+                          <stop
+                            offset="100%"
+                            stopColor="#a78bfa"
+                          />
+                        </linearGradient>
+                      </defs>
+
                       <CartesianGrid
                         stroke="rgba(255,255,255,0.05)"
                         vertical={false}
@@ -1610,7 +1783,7 @@ export default function AdminDashboard() {
 
                       <XAxis
                         dataKey="month"
-                        axisLine={false}
+                        axisLine={true}
                         tickLine={false}
                         tick={{
                           fill: "#52525b",
@@ -1631,9 +1804,7 @@ export default function AdminDashboard() {
                       />
 
                       <Tooltip
-                        contentStyle={
-                          chartTooltipStyle
-                        }
+                        contentStyle={chartTooltipStyle}
                         formatter={(value) => [
                           `৳${Number(
                             value
@@ -1645,7 +1816,7 @@ export default function AdminDashboard() {
                       <Bar
                         dataKey="revenue"
                         radius={[8, 8, 2, 2]}
-                        fill="#3b82f6"
+                        fill="url(#revenueGradient)"
                       />
                     </BarChart>
                   </ResponsiveContainer>
@@ -1658,10 +1829,9 @@ export default function AdminDashboard() {
             ================================================= */}
 
             <section className="grid gap-5 xl:grid-cols-2">
-
               {/* Course Performance */}
-              <div className="chart-card rounded-3xl border border-white/10 bg-white/[0.035] p-5 opacity-0 backdrop-blur-xl lg:p-6">
 
+              <div className="chart-card rounded-3xl border border-white/10 bg-white/[0.035] p-5 opacity-0 backdrop-blur-xl lg:p-6">
                 <div className="mb-6 flex items-center justify-between">
                   <div>
                     <p className="text-xs uppercase tracking-wider text-purple-400">
@@ -1726,8 +1896,8 @@ export default function AdminDashboard() {
               </div>
 
               {/* Recent Enrollments */}
-              <div className="chart-card rounded-3xl border border-white/10 bg-white/[0.035] p-5 opacity-0 backdrop-blur-xl lg:p-6">
 
+              <div className="chart-card rounded-3xl border border-white/10 bg-white/[0.035] p-5 opacity-0 backdrop-blur-xl lg:p-6">
                 <div className="mb-6 flex items-center justify-between">
                   <div>
                     <p className="text-xs uppercase tracking-wider text-cyan-400">
@@ -1870,8 +2040,8 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-
                   {/* Add Course */}
+
                   <Link
                     href="/dashboard/admin/courses"
                     className="
@@ -1906,6 +2076,7 @@ export default function AdminDashboard() {
                   </Link>
 
                   {/* Students */}
+
                   <Link
                     href="/dashboard/admin/students"
                     className="
@@ -1940,6 +2111,7 @@ export default function AdminDashboard() {
                   </Link>
 
                   {/* Enrollments */}
+
                   <Link
                     href="/dashboard/admin/enrollments"
                     className="
@@ -1974,6 +2146,7 @@ export default function AdminDashboard() {
                   </Link>
 
                   {/* Analytics */}
+
                   <Link
                     href="/dashboard/admin/analytics"
                     className="
