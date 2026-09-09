@@ -24,7 +24,7 @@ interface Course {
   title: string;
   slug: string;
   shortDescription: string;
-  description?: string; // ← এটা যোগ করুন
+  description: string; // ← এটা যোগ করুন
   thumbnail: string;
   category: string;
   level: "Beginner" | "Intermediate" | "Advanced";
