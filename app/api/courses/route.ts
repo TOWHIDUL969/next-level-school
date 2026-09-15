@@ -196,6 +196,9 @@ export async function POST(request: NextRequest) {
             price,
             instructor,
             totalLessons,
+            skills,
+            icon,
+            featured,
             status,
         } = body;
 
@@ -288,11 +291,26 @@ export async function POST(request: NextRequest) {
             level,
             duration: Number(duration),
             price: Number(price),
+
             instructor: {
                 name: instructor.name.trim(),
                 email: instructor.email?.trim().toLowerCase() || "",
             },
+
             totalLessons: Number(totalLessons),
+
+            // Course display fields
+            skills: Array.isArray(skills)
+                ? skills
+                    .filter((skill) => typeof skill === "string")
+                    .map((skill) => skill.trim())
+                    .filter(Boolean)
+                : [],
+
+            icon: typeof icon === "string" ? icon.trim() : "",
+
+            featured: Boolean(featured),
+
             status: courseStatus,
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -366,6 +384,9 @@ export async function PUT(request: NextRequest) {
             price,
             instructor,
             totalLessons,
+            skills,
+            icon,
+            featured,
             status,
         } = body;
 
@@ -483,6 +504,16 @@ export async function PUT(request: NextRequest) {
                 email: instructor.email?.trim().toLowerCase() || "",
             },
             totalLessons: Number(totalLessons),
+            skills: Array.isArray(skills)
+                ? skills
+                    .filter((skill) => typeof skill === "string")
+                    .map((skill) => skill.trim())
+                    .filter(Boolean)
+                : [],
+
+            icon: typeof icon === "string" ? icon.trim() : "",
+
+            featured: Boolean(featured),
             status: courseStatus,
             updatedAt: new Date(),
         };

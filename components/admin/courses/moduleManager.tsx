@@ -118,6 +118,19 @@ interface CloudinaryUploadResult {
     bytes?: number;
 }
 
+interface CloudinaryChunkResponse {
+    done?: boolean;
+    secure_url?: string;
+    public_id?: string;
+    duration?: number;
+    format?: string;
+    bytes?: number;
+    error?: {
+        message?: string;
+    };
+    message?: string;
+}
+
 interface SignatureResponse {
     success: boolean;
     signature: string;
@@ -591,7 +604,7 @@ export default function ModuleManager({
         apiKey: string,
         folder: string,
         attempt = 0
-    ): Promise<any> => {
+    ): Promise<CloudinaryChunkResponse> => {
         return new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
 
@@ -615,11 +628,11 @@ export default function ModuleManager({
             xhr.onload = () => {
                 activeUploadXhrRef.current = null;
 
-                let data: any = null;
+                let data: CloudinaryChunkResponse | null = null;
 
                 try {
                     data = xhr.responseText
-                        ? JSON.parse(xhr.responseText)
+                        ? (JSON.parse(xhr.responseText) as CloudinaryChunkResponse)
                         : null;
                 } catch {
                     data = null;
@@ -629,7 +642,15 @@ export default function ModuleManager({
                     xhr.status >= 200 &&
                     xhr.status < 300
                 ) {
-                    resolve(data);
+                    if (data) {
+                        resolve(data);
+                    } else {
+                        reject(
+                            new Error(
+                                "Cloudinary returned an empty response."
+                            )
+                        );
+                    }
                     return;
                 }
 
@@ -946,7 +967,7 @@ export default function ModuleManager({
                 file.size / CHUNK_SIZE
             );
 
-            let finalResponse: any = null;
+            let finalResponse: CloudinaryChunkResponse | null = null;
 
             for (
                 let chunkIndex = 0;
@@ -995,7 +1016,9 @@ export default function ModuleManager({
                         folder
                     );
 
-                finalResponse = response;
+                if (response?.done === true) {
+                    finalResponse = response;
+                }
 
                 setUploadProgress(
                     Math.round(
@@ -1008,11 +1031,15 @@ export default function ModuleManager({
 
             if (
                 !finalResponse ||
-                typeof finalResponse !==
-                "object"
+                finalResponse.done !== true
             ) {
+                console.error(
+                    "Cloudinary final response missing:",
+                    finalResponse
+                );
+
                 throw new Error(
-                    "Invalid Cloudinary response format"
+                    "Cloudinary upload did not complete successfully."
                 );
             }
 
@@ -1021,20 +1048,24 @@ export default function ModuleManager({
                 !finalResponse.public_id
             ) {
                 console.error(
-                    "Unexpected Cloudinary response:",
+                    "Unexpected Cloudinary final response:",
                     finalResponse
                 );
 
                 throw new Error(
-                    finalResponse?.error
-                        ?.message ||
-                    finalResponse?.message ||
+                    finalResponse.error?.message ||
+                    finalResponse.message ||
                     "Cloudinary did not return a valid video URL."
                 );
             }
 
-            const uploadResult: CloudinaryUploadResult =
-                finalResponse;
+            const uploadResult: CloudinaryUploadResult = {
+                secure_url: finalResponse.secure_url,
+                public_id: finalResponse.public_id,
+                duration: finalResponse.duration,
+                format: finalResponse.format,
+                bytes: finalResponse.bytes,
+            };
 
             const previousUnsavedVideo =
                 newlyUploadedVideoRef.current;

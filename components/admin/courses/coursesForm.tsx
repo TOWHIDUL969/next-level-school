@@ -1,4 +1,3 @@
-
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
@@ -6,31 +5,39 @@ import { FormEvent, useEffect, useState } from "react";
 import {
   X,
   Upload,
-  Image as ImageIcon,
+  ImageIcon,
   Loader2,
   Save,
   Send,
+  ChevronDown,
+  Check,
+  Search,
+  Code2,
+  Monitor,
+  Palette,
+  PenTool,
+  Megaphone,
+  Video,
+  Bot,
+  Database,
+  Globe,
+  Smartphone,
+  Briefcase,
+  GraduationCap,
+  FileText,
+  Settings,
+  BookOpen,
+  Camera,
+  Music,
+  ShoppingCart,
+  Calculator,
+  Terminal,
+  Server,
+  Layers,
 } from "lucide-react";
 
-interface Course {
-  _id: string;
-  title: string;
-  slug: string;
-  shortDescription: string;
-  description: string;
-  thumbnail: string;
-  category: string;
-  level: "Beginner" | "Intermediate" | "Advanced";
-  duration: number;
-  price: number;
-  instructor: {
-    name: string;
-    email?: string;
-  };
-  totalLessons: number;
-  status: "draft" | "published";
-  createdAt: string;
-}
+// 🔑 shared Course type — local interface বাদ
+import type { Course } from "@/lib/courses";
 
 interface CourseFormProps {
   course?: Course | null;
@@ -48,6 +55,37 @@ export default function CourseForm({
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [thumbnail, setThumbnail] = useState("");
+  const [skills, setSkills] = useState<string[]>([]);
+  const [skillInput, setSkillInput] = useState("");
+  const [icon, setIcon] = useState("");
+  const [featured, setFeatured] = useState(false);
+  const [iconDropdownOpen, setIconDropdownOpen] = useState(false);
+  const [iconSearch, setIconSearch] = useState("");
+
+  const courseIcons = [
+    { name: "code", label: "Code", icon: Code2 },
+    { name: "monitor", label: "Computer", icon: Monitor },
+    { name: "palette", label: "Graphic Design", icon: Palette },
+    { name: "pen-tool", label: "UI / UX", icon: PenTool },
+    { name: "megaphone", label: "Digital Marketing", icon: Megaphone },
+    { name: "video", label: "Video Editing", icon: Video },
+    { name: "bot", label: "Artificial Intelligence", icon: Bot },
+    { name: "database", label: "Database", icon: Database },
+    { name: "globe", label: "Web Development", icon: Globe },
+    { name: "smartphone", label: "Mobile", icon: Smartphone },
+    { name: "briefcase", label: "Career", icon: Briefcase },
+    { name: "graduation-cap", label: "Education", icon: GraduationCap },
+    { name: "file-text", label: "Office", icon: FileText },
+    { name: "settings", label: "Technical", icon: Settings },
+    { name: "book-open", label: "Learning", icon: BookOpen },
+    { name: "camera", label: "Photography", icon: Camera },
+    { name: "music", label: "Music", icon: Music },
+    { name: "shopping-cart", label: "E-Commerce", icon: ShoppingCart },
+    { name: "calculator", label: "Accounting", icon: Calculator },
+    { name: "terminal", label: "Programming", icon: Terminal },
+    { name: "server", label: "Server", icon: Server },
+    { name: "layers", label: "Technology", icon: Layers },
+  ];
 
   const [form, setForm] = useState({
     title: "",
@@ -62,6 +100,10 @@ export default function CourseForm({
     instructorEmail: "",
     totalLessons: "",
   });
+
+  const filteredIcons = courseIcons.filter((item) =>
+    item.label.toLowerCase().includes(iconSearch.toLowerCase())
+  );
 
   // Load existing course data in Edit mode
   useEffect(() => {
@@ -81,6 +123,10 @@ export default function CourseForm({
       });
 
       setThumbnail("");
+      setSkills([]);
+      setSkillInput("");
+      setIcon("");
+      setFeatured(false);
       return;
     }
 
@@ -99,7 +145,40 @@ export default function CourseForm({
     });
 
     setThumbnail(course.thumbnail || "");
+    setSkills(Array.isArray(course.skills) ? course.skills : []);
+    setSkillInput("");
+    setIcon(course.icon || "");
+    setFeatured(Boolean(course.featured));
   }, [course]);
+
+  const addSkill = () => {
+    const skill = skillInput.trim();
+
+    if (!skill) return;
+
+    if (skills.includes(skill)) {
+      setSkillInput("");
+      return;
+    }
+
+    setSkills((prev) => [...prev, skill]);
+    setSkillInput("");
+  };
+
+  const removeSkill = (skillToRemove: string) => {
+    setSkills((prev) =>
+      prev.filter((skill) => skill !== skillToRemove)
+    );
+  };
+
+  const handleSkillKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addSkill();
+    }
+  };
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -232,6 +311,9 @@ export default function CourseForm({
           email: form.instructorEmail.trim() || undefined,
         },
         totalLessons: Number(form.totalLessons),
+        skills,
+        icon: icon.trim(),
+        featured,
         status,
       };
 
@@ -254,9 +336,9 @@ export default function CourseForm({
       if (!response.ok || !data.success) {
         throw new Error(
           data.message ||
-            (isEditMode
-              ? "Failed to update course"
-              : "Failed to create course")
+          (isEditMode
+            ? "Failed to update course"
+            : "Failed to create course")
         );
       }
 
@@ -467,6 +549,238 @@ export default function CourseForm({
           />
         </div>
 
+        {/* Course Skills + Icon + Featured */}
+        <div className="grid gap-5 lg:grid-cols-2">
+
+          {/* Skills */}
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+            <div className="mb-4">
+              <h3 className="font-semibold text-white">
+                Course Skills
+              </h3>
+              <p className="mt-1 text-xs text-zinc-500">
+                Add the main skills students will learn.
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={skillInput}
+                onChange={(e) => setSkillInput(e.target.value)}
+                onKeyDown={handleSkillKeyDown}
+                placeholder="e.g. JavaScript"
+                className="input-style"
+              />
+
+              <button
+                type="button"
+                onClick={addSkill}
+                disabled={!skillInput.trim()}
+                className="shrink-0 rounded-xl bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Add
+              </button>
+            </div>
+
+            {skills.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {skills.map((skill) => (
+                  <div
+                    key={skill}
+                    className="flex items-center gap-2 rounded-lg border border-purple-500/20 bg-purple-500/10 px-3 py-1.5 text-xs text-purple-300"
+                  >
+                    <span>{skill}</span>
+
+                    <button
+                      type="button"
+                      onClick={() => removeSkill(skill)}
+                      className="text-zinc-500 transition hover:text-red-400"
+                      aria-label={`Remove ${skill}`}
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Icon + Featured */}
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+
+            <div className="mb-4">
+              <h3 className="font-semibold text-white">
+                Course Display
+              </h3>
+              <p className="mt-1 text-xs text-zinc-500">
+                Customize how this course appears on the courses page.
+              </p>
+            </div>
+
+            <div className="relative">
+              <label className="mb-2 block text-sm text-zinc-400">
+                Course Icon
+              </label>
+
+              {/* Selected Icon Button */}
+              <button
+                type="button"
+                onClick={() => setIconDropdownOpen((prev) => !prev)}
+                className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left transition hover:border-purple-500/40 hover:bg-white/[0.05]"
+              >
+                <div className="flex items-center gap-3">
+                  {(() => {
+                    const selected = courseIcons.find(
+                      (item) => item.name === icon
+                    );
+
+                    if (!selected) {
+                      return (
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-dashed border-white/10 text-zinc-500">
+                          <Layers size={18} />
+                        </div>
+                      );
+                    }
+
+                    const SelectedIcon = selected.icon;
+
+                    return (
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-500/10 text-purple-400">
+                        <SelectedIcon size={19} />
+                      </div>
+                    );
+                  })()}
+
+                  <div>
+                    <p className="text-sm font-medium text-white">
+                      {courseIcons.find((item) => item.name === icon)?.label ||
+                        "Select an icon"}
+                    </p>
+
+                    <p className="text-xs text-zinc-500">
+                      {icon || "Choose a course icon"}
+                    </p>
+                  </div>
+                </div>
+
+                <ChevronDown
+                  size={18}
+                  className={`text-zinc-500 transition-transform ${iconDropdownOpen ? "rotate-180" : ""
+                    }`}
+                />
+              </button>
+
+              {/* Dropdown */}
+              {iconDropdownOpen && (
+                <div className="absolute left-0 right-0 z-50 mt-2 overflow-hidden rounded-2xl border border-white/10 bg-[#111116] shadow-2xl shadow-black/40">
+
+                  {/* Search */}
+                  <div className="border-b border-white/10 p-3">
+                    <div className="relative">
+                      <Search
+                        size={16}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
+                      />
+
+                      <input
+                        type="text"
+                        value={iconSearch}
+                        onChange={(e) => setIconSearch(e.target.value)}
+                        placeholder="Search icon..."
+                        autoFocus
+                        className="w-full rounded-xl border border-white/10 bg-white/[0.04] py-2.5 pl-9 pr-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-purple-500/40"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Icon List */}
+                  <div className="max-h-64 overflow-y-auto p-2">
+                    {filteredIcons.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {filteredIcons.map((item) => {
+                          const IconComponent = item.icon;
+                          const selected = icon === item.name;
+
+                          return (
+                            <button
+                              key={item.name}
+                              type="button"
+                              onClick={() => {
+                                setIcon(item.name);
+                                setIconDropdownOpen(false);
+                                setIconSearch("");
+                              }}
+                              className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${selected
+                                ? "bg-purple-500/15 text-purple-300"
+                                : "text-zinc-400 hover:bg-white/[0.05] hover:text-white"
+                                }`}
+                            >
+                              <div
+                                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition ${selected
+                                  ? "bg-purple-500/20 text-purple-400"
+                                  : "bg-white/[0.04] text-zinc-500 group-hover:bg-white/[0.08] group-hover:text-zinc-300"
+                                  }`}
+                              >
+                                <IconComponent size={18} />
+                              </div>
+
+                              <span className="min-w-0 flex-1 truncate text-xs font-medium">
+                                {item.label}
+                              </span>
+
+                              {selected && (
+                                <Check
+                                  size={15}
+                                  className="shrink-0 text-purple-400"
+                                />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="px-4 py-8 text-center">
+                        <Search
+                          size={22}
+                          className="mx-auto mb-2 text-zinc-600"
+                        />
+
+                        <p className="text-sm text-zinc-500">
+                          No icon found
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <p className="mt-2 text-xs text-zinc-500">
+                Search and select an icon for this course.
+              </p>
+            </div>
+
+            <label className="mt-5 flex cursor-pointer items-center justify-between rounded-xl border border-white/10 bg-white/[0.02] p-4 transition hover:bg-white/[0.04]">
+              <div>
+                <p className="text-sm font-semibold text-white">
+                  Featured Course
+                </p>
+                <p className="mt-1 text-xs text-zinc-500">
+                  Highlight this course on the courses page.
+                </p>
+              </div>
+
+              <input
+                type="checkbox"
+                checked={featured}
+                onChange={(e) => setFeatured(e.target.checked)}
+                className="h-5 w-5 accent-purple-600"
+              />
+            </label>
+
+          </div>
+        </div>
+
         {/* Level + Duration + Lessons + Price */}
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <div>
@@ -666,4 +980,3 @@ export default function CourseForm({
     </div>
   );
 }
-

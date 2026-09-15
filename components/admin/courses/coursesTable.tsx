@@ -16,28 +16,8 @@ import {
   Layers,
 } from "lucide-react";
 
-// ✅ Course interface
-// components/admin/courses/coursesTable.tsx
-
-interface Course {
-  _id: string;
-  title: string;
-  slug: string;
-  shortDescription: string;
-  description: string; // ← এটা যোগ করুন
-  thumbnail: string;
-  category: string;
-  level: "Beginner" | "Intermediate" | "Advanced";
-  duration: number;
-  price: number;
-  instructor: {
-    name: string;
-    email?: string;
-  };
-  totalLessons: number;
-  status: "draft" | "published";
-  createdAt: string;
-}
+// 🔑 shared Course type — local interface বাদ, একটাই source of truth
+import type { Course } from "@/lib/courses";
 
 // ✅ Import CourseForm
 import CourseForm from "./coursesForm";
@@ -415,7 +395,7 @@ export default function CourseTable() {
         )}
       </div>
 
-      {/* ✅ Course Form Modal - FIXED */}
+      {/* ✅ Course Form Modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-md">
           <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-white/10 bg-[#111113] shadow-2xl shadow-black/50">
@@ -458,7 +438,7 @@ function StatCard({
   );
 }
 
-// ✅ AlertCircle Icon Component (renamed to avoid conflict)
+// ✅ AlertCircle Icon Component
 function AlertCircleIcon({ size = 24 }: { size?: number }) {
   return (
     <svg
