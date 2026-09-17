@@ -132,61 +132,7 @@ export default function Header() {
                 </li>
 
                 <li>
-                  <details>
-                    <summary className="font-medium">
-                      Courses
-                    </summary>
-
-                    <ul>
-                      <li>
-                        <Link href="/courses">
-                          All Courses
-                        </Link>
-                      </li>
-
-                      <li>
-                        <Link href="/courses/web-development">
-                          Web Development
-                        </Link>
-                      </li>
-
-                      <li>
-                        <Link href="/courses/basic-computer">
-                          Basic Computer
-                        </Link>
-                      </li>
-
-                      <li>
-                        <Link href="/courses/ui-ux">
-                          UI/UX Design
-                        </Link>
-                      </li>
-
-                      <li>
-                        <Link href="/courses/graphic-design">
-                          Graphic Design
-                        </Link>
-                      </li>
-
-                      <li>
-                        <Link href="/courses/digital-marketing">
-                          Digital Marketing
-                        </Link>
-                      </li>
-
-                      <li>
-                        <Link href="/courses/video-editing">
-                          Video Editing
-                        </Link>
-                      </li>
-
-                      <li>
-                        <Link href="/courses/ai-driven-basic-computer">
-                          AI Driven Basic Computer
-                        </Link>
-                      </li>
-                    </ul>
-                  </details>
+                  <Link href={"/courses"} className="font-medium">Courses</Link>
                 </li>
 
                 <li>
@@ -320,67 +266,7 @@ export default function Header() {
 
               {/* Courses Dropdown */}
               <li>
-                <details>
-                  <summary className="font-medium">
-                    Courses
-                  </summary>
-
-                  <ul className="z-50 mt-3 w-64 rounded-xl border border-base-300 bg-slate-950 p-2 text-white shadow-xl">
-
-                    <li>
-                      <Link
-                        href="/courses"
-                        className="font-semibold"
-                      >
-                        All Courses
-                      </Link>
-                    </li>
-
-                    <div className="my-1 border-t border-base-200" />
-
-                    <li>
-                      <Link href="/courses/web-development">
-                        Web Development
-                      </Link>
-                    </li>
-
-                    <li>
-                      <Link href="/courses/basic-computer">
-                        Basic Computer
-                      </Link>
-                    </li>
-
-                    <li>
-                      <Link href="/courses/ui-ux">
-                        UI/UX Design
-                      </Link>
-                    </li>
-
-                    <li>
-                      <Link href="/courses/graphic-design">
-                        Graphic Design
-                      </Link>
-                    </li>
-
-                    <li>
-                      <Link href="/courses/digital-marketing">
-                        Digital Marketing
-                      </Link>
-                    </li>
-
-                    <li>
-                      <Link href="/courses/video-editing">
-                        Video Editing
-                      </Link>
-                    </li>
-
-                    <li>
-                      <Link href="/courses/ai-driven-basic-computer">
-                        AI Driven Basic Computer
-                      </Link>
-                    </li>
-                  </ul>
-                </details>
+                <Link href={"/courses"} className="font-medium">Courses</Link>
               </li>
 
               <li>

@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId, type WithId } from "mongodb";
 
@@ -47,6 +46,15 @@ interface EnrollmentDoc {
     completedLessons: ObjectId[];
     enrolledAt: Date;
     completedAt: Date | null;
+    updatedAt?: Date;
+}
+
+interface LessonDoc {
+    _id: ObjectId;
+    courseId: ObjectId;
+    moduleId: ObjectId;
+    title: string;
+    status?: "published" | "draft";
 }
 
 // =========================================================
@@ -58,15 +66,10 @@ function serializeEnrollment(
 ) {
     return {
         _id: enrollment._id.toString(),
-
         userId: enrollment.userId.toString(),
-
         courseId: enrollment.courseId.toString(),
-
         status: enrollment.status,
-
         paymentStatus: enrollment.paymentStatus,
-
         progress: enrollment.progress ?? 0,
 
         completedLessons: (
@@ -102,11 +105,9 @@ export async function GET(request: NextRequest) {
         }
 
         const { searchParams } = new URL(request.url);
-
         const courseId = searchParams.get("courseId");
 
         const client = await clientPromise;
-
         const db = client.db("next-auth");
 
         const enrollments =
@@ -145,7 +146,8 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({
                 success: true,
                 enrolled: true,
-                enrollment: serializeEnrollment(enrollment),
+                enrollment:
+                    serializeEnrollment(enrollment),
             });
         }
 
@@ -220,11 +222,15 @@ export async function POST(request: NextRequest) {
                 ? body.courseId.trim()
                 : "";
 
-        if (!courseId || !ObjectId.isValid(courseId)) {
+        if (
+            !courseId ||
+            !ObjectId.isValid(courseId)
+        ) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: "Valid course ID is required.",
+                    message:
+                        "Valid course ID is required.",
                 },
                 {
                     status: 400,
@@ -232,7 +238,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const courseObjectId = new ObjectId(courseId);
+        const courseObjectId =
+            new ObjectId(courseId);
 
         // =====================================================
         // FIND COURSE
@@ -246,7 +253,9 @@ export async function POST(request: NextRequest) {
                     filter: {
                         _id: ObjectId;
                     }
-                ) => Promise<WithId<CourseDoc> | null>;
+                ) => Promise<
+                    WithId<CourseDoc> | null
+                >;
             }
         ).findOne({
             _id: courseObjectId,
@@ -286,7 +295,6 @@ export async function POST(request: NextRequest) {
         // =====================================================
 
         const client = await clientPromise;
-
         const db = client.db("next-auth");
 
         const enrollments =
@@ -311,9 +319,6 @@ export async function POST(request: NextRequest) {
 
             // =================================================
             // PENDING + UNPAID
-            //
-            // This is NOT a new enrollment.
-            // The user should continue to payment.
             // =================================================
 
             if (
@@ -323,9 +328,7 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json(
                     {
                         success: true,
-
                         requiresPayment: true,
-
                         alreadyEnrolled: true,
 
                         message:
@@ -376,11 +379,8 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json(
                     {
                         success: true,
-
                         requiresPayment: true,
-
                         alreadyEnrolled: true,
-
                         paymentProcessing: true,
 
                         message:
@@ -408,7 +408,6 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json(
                     {
                         success: true,
-
                         alreadyEnrolled: true,
 
                         message:
@@ -435,9 +434,7 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json(
                     {
                         success: true,
-
                         alreadyEnrolled: true,
-
                         completed: true,
 
                         message:
@@ -455,13 +452,12 @@ export async function POST(request: NextRequest) {
             }
 
             // =================================================
-            // FALLBACK FOR ANY OTHER EXISTING RECORD
+            // FALLBACK
             // =================================================
 
             return NextResponse.json(
                 {
                     success: true,
-
                     alreadyEnrolled: true,
 
                     message:
@@ -482,7 +478,9 @@ export async function POST(request: NextRequest) {
         // COURSE PRICE
         // =====================================================
 
-        const price = Number(course.price ?? 0);
+        const price = Number(
+            course.price ?? 0
+        );
 
         const isFree = price <= 0;
 
@@ -493,9 +491,11 @@ export async function POST(request: NextRequest) {
         const now = new Date();
 
         const enrollment: EnrollmentDoc = {
-            userId: new ObjectId(user.id),
+            userId:
+                new ObjectId(user.id),
 
-            courseId: courseObjectId,
+            courseId:
+                courseObjectId,
 
             status: isFree
                 ? "active"
@@ -527,7 +527,8 @@ export async function POST(request: NextRequest) {
             {
                 success: true,
 
-                requiresPayment: !isFree,
+                requiresPayment:
+                    !isFree,
 
                 alreadyEnrolled: false,
 
@@ -539,7 +540,8 @@ export async function POST(request: NextRequest) {
                     _id:
                         result.insertedId.toString(),
 
-                    userId: user.id,
+                    userId:
+                        user.id,
 
                     courseId,
 
@@ -582,3 +584,481 @@ export async function POST(request: NextRequest) {
     }
 }
 
+// =========================================================
+// PATCH - COMPLETE LESSON / UPDATE COURSE PROGRESS
+// =========================================================
+
+export async function PATCH(
+    request: NextRequest
+) {
+    try {
+        // =====================================================
+        // AUTHENTICATED USER
+        // =====================================================
+
+        const user = await getCurrentUser();
+
+        if (!user) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: "Please login first.",
+                },
+                {
+                    status: 401,
+                }
+            );
+        }
+
+        // =====================================================
+        // REQUEST BODY
+        // =====================================================
+
+        const body = await request.json();
+
+        const courseId =
+            typeof body?.courseId === "string"
+                ? body.courseId.trim()
+                : "";
+
+        const lessonId =
+            typeof body?.lessonId === "string"
+                ? body.lessonId.trim()
+                : "";
+
+        const action =
+            typeof body?.action === "string"
+                ? body.action.trim()
+                : "";
+
+        if (
+            !courseId ||
+            !ObjectId.isValid(courseId) ||
+            !lessonId ||
+            !ObjectId.isValid(lessonId)
+        ) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message:
+                        "Valid course ID and lesson ID are required.",
+                },
+                {
+                    status: 400,
+                }
+            );
+        }
+
+        if (action !== "complete") {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message:
+                        "Invalid enrollment action.",
+                },
+                {
+                    status: 400,
+                }
+            );
+        }
+
+        const courseObjectId =
+            new ObjectId(courseId);
+
+        const lessonObjectId =
+            new ObjectId(lessonId);
+
+        const userObjectId =
+            new ObjectId(user.id);
+
+        // =====================================================
+        // DATABASE
+        // =====================================================
+
+        const client = await clientPromise;
+        const db = client.db("next-auth");
+
+        const enrollments =
+            db.collection<EnrollmentDoc>(
+                "enrollments"
+            );
+
+        const lessons =
+            db.collection<LessonDoc>(
+                "lessons"
+            );
+
+        // =====================================================
+        // VERIFY LESSON BELONGS TO COURSE
+        // ONLY PUBLISHED LESSONS CAN BE COMPLETED
+        // =====================================================
+
+        const lesson =
+            await lessons.findOne({
+                _id: lessonObjectId,
+                courseId: courseObjectId,
+                status: "published",
+            });
+
+        if (!lesson) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message:
+                        "Published lesson does not belong to this course.",
+                },
+                {
+                    status: 404,
+                }
+            );
+        }
+
+        // =====================================================
+        // FIND USER ENROLLMENT
+        // =====================================================
+
+        const enrollment =
+            await enrollments.findOne({
+                userId: userObjectId,
+                courseId: courseObjectId,
+            });
+
+        if (!enrollment) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message:
+                        "You are not enrolled in this course.",
+                },
+                {
+                    status: 403,
+                }
+            );
+        }
+
+        // =====================================================
+        // VERIFY PAYMENT / ACCESS
+        // =====================================================
+
+        const hasAccess =
+            (
+                enrollment.status === "active" &&
+                enrollment.paymentStatus === "paid"
+            ) ||
+            enrollment.status === "completed";
+
+        if (!hasAccess) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message:
+                        "You do not have access to this course.",
+                },
+                {
+                    status: 403,
+                }
+            );
+        }
+
+        // =====================================================
+        // TOTAL PUBLISHED COURSE LESSONS
+        // =====================================================
+
+        const totalLessons =
+            await lessons.countDocuments({
+                courseId: courseObjectId,
+                status: "published",
+            });
+
+        if (totalLessons <= 0) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message:
+                        "No published lessons were found for this course.",
+                },
+                {
+                    status: 400,
+                }
+            );
+        }
+
+        // =====================================================
+        // CURRENT COMPLETED LESSONS
+        // =====================================================
+
+        const currentCompletedLessons =
+            enrollment.completedLessons ?? [];
+
+        const completedSet =
+            new Set(
+                currentCompletedLessons.map(
+                    (id) => id.toString()
+                )
+            );
+
+        // =====================================================
+        // ALREADY COMPLETED
+        // =====================================================
+
+        if (
+            completedSet.has(
+                lessonObjectId.toString()
+            )
+        ) {
+            const completedCount =
+                completedSet.size;
+
+            const progress =
+                Math.min(
+                    100,
+                    Math.round(
+                        (completedCount /
+                            totalLessons) *
+                            100
+                    )
+                );
+
+            const courseCompleted =
+                completedCount >=
+                totalLessons;
+
+            // Make sure database status is correct
+            if (
+                courseCompleted &&
+                enrollment.status !== "completed"
+            ) {
+                const now = new Date();
+
+                await enrollments.updateOne(
+                    {
+                        _id: enrollment._id,
+                        userId: userObjectId,
+                        courseId: courseObjectId,
+                    },
+                    {
+                        $set: {
+                            progress: 100,
+                            status: "completed",
+                            completedAt: now,
+                            updatedAt: now,
+                        },
+                    }
+                );
+            }
+
+            const finalEnrollment =
+                await enrollments.findOne({
+                    _id: enrollment._id,
+                });
+
+            if (!finalEnrollment) {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        message:
+                            "Failed to fetch enrollment.",
+                    },
+                    {
+                        status: 500,
+                    }
+                );
+            }
+
+            return NextResponse.json({
+                success: true,
+                alreadyCompleted: true,
+                lessonCompleted: true,
+                progress,
+                courseCompleted,
+
+                completedLessons:
+                    (
+                        finalEnrollment.completedLessons ??
+                        []
+                    ).map((id) =>
+                        id.toString()
+                    ),
+
+                enrollment:
+                    serializeEnrollment(
+                        finalEnrollment
+                    ),
+            });
+        }
+
+        // =====================================================
+        // ADD LESSON TO COMPLETED LESSONS
+        // =====================================================
+
+        const now = new Date();
+
+        await enrollments.updateOne(
+            {
+                _id: enrollment._id,
+                userId: userObjectId,
+                courseId: courseObjectId,
+            },
+            {
+                $addToSet: {
+                    completedLessons:
+                        lessonObjectId,
+                },
+                $set: {
+                    updatedAt: now,
+                },
+            }
+        );
+
+        // =====================================================
+        // GET UPDATED ENROLLMENT
+        // =====================================================
+
+        const updatedEnrollment =
+            await enrollments.findOne({
+                _id: enrollment._id,
+            });
+
+        if (!updatedEnrollment) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message:
+                        "Failed to update enrollment.",
+                },
+                {
+                    status: 500,
+                }
+            );
+        }
+
+        // =====================================================
+        // CALCULATE PROGRESS
+        // =====================================================
+
+        const uniqueCompletedLessons =
+            new Set(
+                (
+                    updatedEnrollment.completedLessons ??
+                    []
+                ).map((id) =>
+                    id.toString()
+                )
+            );
+
+        const completedCount =
+            uniqueCompletedLessons.size;
+
+        const progress =
+            Math.min(
+                100,
+                Math.round(
+                    (completedCount /
+                        totalLessons) *
+                        100
+                )
+            );
+
+        const courseCompleted =
+            completedCount >=
+            totalLessons;
+
+        // =====================================================
+        // UPDATE COURSE STATUS
+        // =====================================================
+
+        await enrollments.updateOne(
+            {
+                _id: enrollment._id,
+                userId: userObjectId,
+                courseId: courseObjectId,
+            },
+            {
+                $set: {
+                    progress,
+
+                    status:
+                        courseCompleted
+                            ? "completed"
+                            : "active",
+
+                    completedAt:
+                        courseCompleted
+                            ? now
+                            : null,
+
+                    updatedAt: now,
+                },
+            }
+        );
+
+        // =====================================================
+        // FINAL ENROLLMENT
+        // =====================================================
+
+        const finalEnrollment =
+            await enrollments.findOne({
+                _id: enrollment._id,
+            });
+
+        if (!finalEnrollment) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message:
+                        "Failed to fetch updated enrollment.",
+                },
+                {
+                    status: 500,
+                }
+            );
+        }
+
+        // =====================================================
+        // RESPONSE
+        // =====================================================
+
+        return NextResponse.json({
+            success: true,
+
+            message: courseCompleted
+                ? "Congratulations! You have completed the course."
+                : "Lesson completed successfully.",
+
+            lessonCompleted: true,
+
+            courseCompleted,
+
+            progress,
+
+            completedLessons:
+                (
+                    finalEnrollment.completedLessons ??
+                    []
+                ).map((id) =>
+                    id.toString()
+                ),
+
+            enrollment:
+                serializeEnrollment(
+                    finalEnrollment
+                ),
+        });
+    } catch (error) {
+        console.error(
+            "PATCH /api/enrollments error:",
+            error
+        );
+
+        return NextResponse.json(
+            {
+                success: false,
+                message:
+                    "Failed to update lesson progress.",
+            },
+            {
+                status: 500,
+            }
+        );
+    }
+}

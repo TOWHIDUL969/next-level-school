@@ -1,12 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import {
+  FormEvent,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
+import {
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
+
+
+
 import gsap from "gsap";
 import Image from "next/image";
 
-export default function RegisterPage() {
+export function RegisterForm() {
   const rootRef = useRef<HTMLDivElement>(null);
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -224,18 +243,10 @@ export default function RegisterPage() {
         return;
       }
 
-      setSuccess(
-        "Account created successfully! You can now sign in."
-      );
+      const redirectTo =
+        searchParams.get("redirect") || "/";
 
-      // Form reset
-      setForm({
-        name: "",
-        email: "",
-        phone: "",
-        password: "",
-        confirmPassword: "",
-      });
+      router.push(redirectTo);
 
       setAgreeTerms(false);
       setShowPassword(false);
@@ -729,17 +740,16 @@ export default function RegisterPage() {
                         required
                         minLength={8}
                         autoComplete="new-password"
-                        className={`h-12 w-full rounded-xl border bg-white/[0.035] px-4 pr-12 text-sm text-white outline-none placeholder:text-zinc-600 transition focus:bg-white/[0.06] focus:ring-4 focus:ring-white/[0.03] ${
-                          form.confirmPassword &&
+                        className={`h-12 w-full rounded-xl border bg-white/[0.035] px-4 pr-12 text-sm text-white outline-none placeholder:text-zinc-600 transition focus:bg-white/[0.06] focus:ring-4 focus:ring-white/[0.03] ${form.confirmPassword &&
                           form.password !==
+                          form.confirmPassword
+                          ? "border-red-500/30 focus:border-red-500/50"
+                          : form.confirmPassword &&
+                            form.password ===
                             form.confirmPassword
-                            ? "border-red-500/30 focus:border-red-500/50"
-                            : form.confirmPassword &&
-                              form.password ===
-                                form.confirmPassword
                             ? "border-white/20 focus:border-white/30"
                             : "border-white/10 focus:border-white/30"
-                        }`}
+                          }`}
                       />
 
                       <button
@@ -796,7 +806,7 @@ export default function RegisterPage() {
 
                     {form.confirmPassword &&
                       form.password !==
-                        form.confirmPassword && (
+                      form.confirmPassword && (
                         <p className="mt-1.5 text-[10px] text-red-400">
                           Passwords do not match.
                         </p>
@@ -960,5 +970,21 @@ export default function RegisterPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+function RegisterPageFallback() {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-zinc-950 text-white">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+    </main>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<RegisterPageFallback />}>
+      <RegisterForm />
+    </Suspense>
   );
 }
