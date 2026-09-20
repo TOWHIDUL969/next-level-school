@@ -15,12 +15,14 @@ import Link from "next/link";
 
 import {
     ArrowLeft,
+    Award,
     BookOpen,
     CheckCircle2,
     ChevronDown,
     ChevronLeft,
     ChevronRight,
     Clock3,
+    Download,
     FileText,
     Loader2,
     Lock,
@@ -83,27 +85,35 @@ interface Enrollment {
     _id: string;
     userId: string;
     courseId: string;
-
     status?:
         | "pending"
         | "active"
         | "completed"
         | "cancelled";
-
     paymentStatus?:
         | "unpaid"
         | "pending"
         | "paid"
         | "failed"
         | "refunded";
-
     progress?: number;
-
     completedLessons?: string[];
-
     enrolledAt?: string;
-
     completedAt?: string | null;
+}
+
+interface Certificate {
+    _id: string;
+    certificateId: string;
+    userId: string;
+    courseId: string;
+    enrollmentId: string;
+    studentName: string;
+    courseName: string;
+    courseDuration: number;
+    durationUnit: "Hours";
+    issuedAt: string;
+    createdAt: string;
 }
 
 // =========================================================
@@ -129,10 +139,14 @@ function formatDuration(seconds?: number) {
         totalSeconds % 60;
 
     if (hours > 0) {
-        return `${hours}:${String(minutes).padStart(
+        return `${hours}:${String(
+            minutes
+        ).padStart(
             2,
             "0"
-        )}:${String(remainingSeconds).padStart(
+        )}:${String(
+            remainingSeconds
+        ).padStart(
             2,
             "0"
         )}`;
@@ -140,7 +154,10 @@ function formatDuration(seconds?: number) {
 
     return `${minutes}:${String(
         remainingSeconds
-    ).padStart(2, "0")}`;
+    ).padStart(
+        2,
+        "0"
+    )}`;
 }
 
 function getProgress(
@@ -190,6 +207,9 @@ export default function CourseLearningPage() {
     const [enrollment, setEnrollment] =
         useState<Enrollment | null>(null);
 
+    const [certificate, setCertificate] =
+        useState<Certificate | null>(null);
+
     const [selectedLesson, setSelectedLesson] =
         useState<Lesson | null>(null);
 
@@ -213,6 +233,9 @@ export default function CourseLearningPage() {
 
     const [completionError, setCompletionError] =
         useState("");
+
+    const [certificateLoading, setCertificateLoading] =
+        useState(false);
 
     // =====================================================
     // LOAD COURSE + ACCESS
@@ -265,7 +288,9 @@ export default function CourseLearningPage() {
                     return;
                 }
 
-                setCourse(loadedCourse);
+                setCourse(
+                    loadedCourse
+                );
 
                 // =================================================
                 // ENROLLMENT / ACCESS
@@ -328,6 +353,54 @@ export default function CourseLearningPage() {
                 );
 
                 setAccessChecking(false);
+
+                // =================================================
+                // LOAD EXISTING CERTIFICATE
+                // =================================================
+
+                try {
+                    const certificateResponse =
+                        await fetch(
+                            "/api/certificates",
+                            {
+                                cache: "no-store",
+                            }
+                        );
+
+                    const certificateData =
+                        await certificateResponse.json();
+
+                    if (
+                        certificateResponse.ok &&
+                        Array.isArray(
+                            certificateData?.certificates
+                        )
+                    ) {
+                        const existingCertificate =
+                            certificateData.certificates.find(
+                                (
+                                    item: Certificate
+                                ) =>
+                                    item.courseId ===
+                                    loadedCourse._id
+                            );
+
+                        if (
+                            existingCertificate
+                        ) {
+                            setCertificate(
+                                existingCertificate
+                            );
+                        }
+                    }
+                } catch (
+                    certificateError
+                ) {
+                    console.warn(
+                        "Certificate loading skipped:",
+                        certificateError
+                    );
+                }
 
                 // =================================================
                 // MODULES
@@ -403,7 +476,9 @@ export default function CourseLearningPage() {
                 // FIRST LESSON
                 // =================================================
 
-                if (loadedLessons.length > 0) {
+                if (
+                    loadedLessons.length > 0
+                ) {
                     const moduleOrderMap =
                         new Map(
                             loadedModules.map(
@@ -440,7 +515,14 @@ export default function CourseLearningPage() {
                                     moduleA !==
                                     moduleB
                                 ) {
-                                   return Number(moduleA) - Number(moduleB);
+                                    return (
+                                        Number(
+                                            moduleA
+                                        ) -
+                                        Number(
+                                            moduleB
+                                        )
+                                    );
                                 }
 
                                 return (
@@ -537,37 +619,65 @@ export default function CourseLearningPage() {
     // =====================================================
 
     const orderedLessons = useMemo(() => {
-    const moduleOrderMap = new Map<string, number>(
-        orderedModules.map(
-            (module, index): [string, number] => [
-                module._id,
-                index,
-            ]
-        )
-    );
+        const moduleOrderMap =
+            new Map<string, number>(
+                orderedModules.map(
+                    (
+                        module,
+                        index
+                    ): [
+                        string,
+                        number
+                    ] => [
+                        module._id,
+                        index,
+                    ]
+                )
+            );
 
-    return [...lessons].sort(
-        (a, b) => {
-            const moduleA =
-                moduleOrderMap.get(a.moduleId) ??
-                Number.MAX_SAFE_INTEGER;
+        return [...lessons].sort(
+            (a, b) => {
+                const moduleA =
+                    moduleOrderMap.get(
+                        a.moduleId
+                    ) ??
+                    Number.MAX_SAFE_INTEGER;
 
-            const moduleB =
-                moduleOrderMap.get(b.moduleId) ??
-                Number.MAX_SAFE_INTEGER;
+                const moduleB =
+                    moduleOrderMap.get(
+                        b.moduleId
+                    ) ??
+                    Number.MAX_SAFE_INTEGER;
 
-            if (moduleA !== moduleB) {
-                return moduleA - moduleB;
+                if (
+                    moduleA !==
+                    moduleB
+                ) {
+                    return (
+                        moduleA -
+                        moduleB
+                    );
+                }
+
+                if (
+                    a.order !==
+                    b.order
+                ) {
+                    return (
+                        a.order -
+                        b.order
+                    );
+                }
+
+                return a._id.localeCompare(
+                    b._id
+                );
             }
-
-            if (a.order !== b.order) {
-                return a.order - b.order;
-            }
-
-            return a._id.localeCompare(b._id);
-        }
-    );
-}, [lessons, orderedModules]);
+        );
+    }, [
+        lessons,
+        orderedModules,
+    ]);
 
     // =====================================================
     // LESSONS BY MODULE
@@ -581,7 +691,9 @@ export default function CourseLearningPage() {
                     Lesson[]
                 >();
 
-            for (const lesson of orderedLessons) {
+            for (
+                const lesson of orderedLessons
+            ) {
                 const existing =
                     map.get(
                         lesson.moduleId
@@ -627,7 +739,8 @@ export default function CourseLearningPage() {
     const previousLesson =
         currentLessonIndex > 0
             ? orderedLessons[
-                  currentLessonIndex - 1
+                  currentLessonIndex -
+                      1
               ]
             : null;
 
@@ -646,6 +759,11 @@ export default function CourseLearningPage() {
                   selectedLesson._id
               )
             : false;
+
+    const courseCompleted =
+        enrollment?.status ===
+            "completed" ||
+        progress >= 100;
 
     const canGoNext =
         currentLessonCompleted ||
@@ -680,7 +798,6 @@ export default function CourseLearningPage() {
             );
 
             setVideoEnded(false);
-
             setCompletionError("");
 
             setOpenModules(
@@ -701,7 +818,6 @@ export default function CourseLearningPage() {
             );
 
             setVideoEnded(false);
-
             setCompletionError("");
 
             setOpenModules(
@@ -735,7 +851,6 @@ export default function CourseLearningPage() {
         );
 
         setVideoEnded(false);
-
         setCompletionError("");
 
         setOpenModules(
@@ -756,6 +871,21 @@ export default function CourseLearningPage() {
     }
 
     // =====================================================
+    // DOWNLOAD CERTIFICATE
+    // =====================================================
+
+    function handleDownloadCertificate() {
+        if (!certificate?.certificateId) {
+            return;
+        }
+
+        window.location.href =
+            `/api/certificates/${encodeURIComponent(
+                certificate.certificateId
+            )}`;
+    }
+
+    // =====================================================
     // COMPLETE CURRENT LESSON
     // =====================================================
 
@@ -767,9 +897,7 @@ export default function CourseLearningPage() {
             return false;
         }
 
-        if (
-            completingLesson
-        ) {
+        if (completingLesson) {
             return false;
         }
 
@@ -793,19 +921,15 @@ export default function CourseLearningPage() {
                     "/api/enrollments",
                     {
                         method: "PATCH",
-
                         headers: {
                             "Content-Type":
                                 "application/json",
                         },
-
                         body: JSON.stringify({
                             courseId:
                                 course._id,
-
                             lessonId:
                                 selectedLesson._id,
-
                             action:
                                 "complete",
                         }),
@@ -826,8 +950,7 @@ export default function CourseLearningPage() {
             }
 
             // =================================================
-            // IMPORTANT:
-            // USE SERVER RESPONSE AS SOURCE OF TRUTH
+            // SERVER RESPONSE AS SOURCE OF TRUTH
             // =================================================
 
             const updatedCompletedLessons =
@@ -851,25 +974,37 @@ export default function CourseLearningPage() {
                     ...(previous ?? {}),
                     ...(updatedEnrollment ??
                         {}),
-
                     completedLessons:
                         updatedCompletedLessons,
-
                     progress:
                         updatedProgress,
-
                     status:
                         data.courseCompleted
                             ? "completed"
                             : "active",
-
                     completedAt:
                         data.courseCompleted
-                            ? new Date().toISOString()
+                            ? (
+                                  updatedEnrollment?.completedAt ??
+                                  new Date().toISOString()
+                              )
                             : previous?.completedAt ??
                               null,
                 })
             );
+
+            // =================================================
+            // CERTIFICATE
+            // =================================================
+
+            if (
+                data.courseCompleted &&
+                data.certificate
+            ) {
+                setCertificate(
+                    data.certificate as Certificate
+                );
+            }
 
             setVideoEnded(true);
 
@@ -923,7 +1058,6 @@ export default function CourseLearningPage() {
         );
 
         setVideoEnded(false);
-
         setCompletionError("");
 
         setOpenModules(
@@ -954,7 +1088,6 @@ export default function CourseLearningPage() {
         );
 
         setVideoEnded(false);
-
         setCompletionError("");
 
         setOpenModules(
@@ -1047,13 +1180,16 @@ export default function CourseLearningPage() {
 
     return (
         <div className="min-h-screen bg-[#08080c] text-white">
+
             {/* =================================================
                 HEADER
             ================================================= */}
 
             <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[#08080c]/90 backdrop-blur-xl">
                 <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-[72px] flex items-center justify-between gap-6">
+
                     <div className="flex items-center gap-4 min-w-0">
+
                         <Link
                             href="/dashboard/courses"
                             className="shrink-0 w-10 h-10 rounded-xl border border-white/[0.08] bg-white/[0.03] flex items-center justify-center hover:bg-white/[0.07] transition"
@@ -1073,6 +1209,7 @@ export default function CourseLearningPage() {
                     </div>
 
                     <div className="hidden sm:flex items-center gap-4">
+
                         <div className="text-right">
                             <p className="text-[11px] text-white/35">
                                 Course Progress
@@ -1100,14 +1237,19 @@ export default function CourseLearningPage() {
             ================================================= */}
 
             <div className="max-w-[1600px] mx-auto flex">
+
                 {/* =================================================
                     SIDEBAR
                 ================================================= */}
 
                 <aside className="hidden lg:block w-[340px] shrink-0 border-r border-white/[0.06] min-h-[calc(100vh-72px)] sticky top-[72px] h-[calc(100vh-72px)] overflow-y-auto">
+
                     <div className="p-5">
+
                         <div className="mb-6">
+
                             <div className="flex items-center justify-between mb-2">
+
                                 <div className="flex items-center gap-2">
                                     <BookOpen className="w-4 h-4 text-purple-400" />
 
@@ -1138,6 +1280,7 @@ export default function CourseLearningPage() {
                         </div>
 
                         <div className="space-y-2">
+
                             {orderedModules.map(
                                 (
                                     module
@@ -1160,6 +1303,7 @@ export default function CourseLearningPage() {
                                             }
                                             className="rounded-2xl border border-white/[0.06] overflow-hidden bg-white/[0.015]"
                                         >
+
                                             <button
                                                 type="button"
                                                 onClick={() =>
@@ -1169,9 +1313,13 @@ export default function CourseLearningPage() {
                                                 }
                                                 className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-white/[0.035] transition"
                                             >
+
                                                 <div className="min-w-0">
+
                                                     <p className="text-sm font-medium truncate">
-                                                        {module.title}
+                                                        {
+                                                            module.title
+                                                        }
                                                     </p>
 
                                                     <p className="text-[11px] text-white/35 mt-1">
@@ -1193,10 +1341,12 @@ export default function CourseLearningPage() {
 
                                             {isOpen && (
                                                 <div className="border-t border-white/[0.05]">
+
                                                     {moduleLessons.map(
                                                         (
                                                             lesson
                                                         ) => {
+
                                                             const isCompleted =
                                                                 completedLessons.includes(
                                                                     lesson._id
@@ -1257,13 +1407,14 @@ export default function CourseLearningPage() {
                                                                             : ""
                                                                     }`}
                                                                 >
+
                                                                     <div
                                                                         className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                                                                             isCompleted
                                                                                 ? "bg-emerald-500/10 text-emerald-400"
                                                                                 : isSelected
-                                                                                ? "bg-purple-500/15 text-purple-300"
-                                                                                : "bg-white/[0.04] text-white/35"
+                                                                                    ? "bg-purple-500/15 text-purple-300"
+                                                                                    : "bg-white/[0.04] text-white/35"
                                                                         }`}
                                                                     >
                                                                         {isCompleted ? (
@@ -1276,13 +1427,18 @@ export default function CourseLearningPage() {
                                                                     </div>
 
                                                                     <div className="min-w-0 flex-1">
+
                                                                         <p className="text-xs font-medium truncate">
-                                                                            {lesson.title}
+                                                                            {
+                                                                                lesson.title
+                                                                            }
                                                                         </p>
 
                                                                         <div className="flex items-center gap-2 mt-1 text-[10px] text-white/30">
+
                                                                             <span className="flex items-center gap-1">
                                                                                 <Clock3 className="w-3 h-3" />
+
                                                                                 {formatDuration(
                                                                                     lesson.duration
                                                                                 )}
@@ -1314,13 +1470,20 @@ export default function CourseLearningPage() {
                 ================================================= */}
 
                 <main className="flex-1 min-w-0">
+
                     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-8">
+
                         {selectedLesson ? (
                             <>
-                                {/* VIDEO */}
+
+                                {/* =================================================
+                                    VIDEO
+                                ================================================= */}
 
                                 <div className="rounded-2xl overflow-hidden border border-white/[0.07] bg-black shadow-2xl">
+
                                     <div className="aspect-video">
+
                                         {selectedLesson.videoUrl ? (
                                             <video
                                                 key={
@@ -1338,6 +1501,7 @@ export default function CourseLearningPage() {
                                             />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-white/40">
+
                                                 <div className="text-center">
                                                     <Video className="w-10 h-10 mx-auto mb-3" />
 
@@ -1350,12 +1514,17 @@ export default function CourseLearningPage() {
                                     </div>
                                 </div>
 
-                                {/* LESSON HEADER */}
+                                {/* =================================================
+                                    LESSON HEADER
+                                ================================================= */}
 
                                 <div className="mt-7">
+
                                     <div className="flex flex-wrap items-center gap-2 mb-3">
+
                                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/15 text-purple-300 text-[11px]">
                                             <PlayCircle className="w-3.5 h-3.5" />
+
                                             Lesson{" "}
                                             {currentLessonIndex +
                                                 1}
@@ -1384,9 +1553,12 @@ export default function CourseLearningPage() {
                                     )}
                                 </div>
 
-                                {/* NAVIGATION */}
+                                {/* =================================================
+                                    NAVIGATION
+                                ================================================= */}
 
                                 <div className="mt-8 flex items-center justify-between gap-3 border-y border-white/[0.06] py-5">
+
                                     <button
                                         type="button"
                                         onClick={
@@ -1405,6 +1577,7 @@ export default function CourseLearningPage() {
                                     </button>
 
                                     <div className="flex items-center gap-2 text-xs text-white/30">
+
                                         <span>
                                             {Math.max(
                                                 currentLessonIndex +
@@ -1436,9 +1609,11 @@ export default function CourseLearningPage() {
                                             }
                                             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-black text-sm font-semibold hover:bg-white/90 disabled:opacity-35 disabled:cursor-not-allowed transition"
                                         >
+
                                             {completingLesson ? (
                                                 <>
                                                     <Loader2 className="w-4 h-4 animate-spin" />
+
                                                     <span>
                                                         Completing...
                                                     </span>
@@ -1470,19 +1645,23 @@ export default function CourseLearningPage() {
                                                     : "bg-white text-black hover:bg-white/90"
                                             } disabled:opacity-50 disabled:cursor-not-allowed`}
                                         >
+
                                             {completingLesson ? (
                                                 <>
                                                     <Loader2 className="w-4 h-4 animate-spin" />
+
                                                     Completing...
                                                 </>
                                             ) : currentLessonCompleted ? (
                                                 <>
                                                     <CheckCircle2 className="w-4 h-4" />
+
                                                     Course Completed
                                                 </>
                                             ) : (
                                                 <>
                                                     <CheckCircle2 className="w-4 h-4" />
+
                                                     Complete Course
                                                 </>
                                             )}
@@ -1490,11 +1669,86 @@ export default function CourseLearningPage() {
                                     )}
                                 </div>
 
-                                {/* VIDEO COMPLETION NOTICE */}
+                                {/* =================================================
+                                    CERTIFICATE SUCCESS
+                                ================================================= */}
+
+                                {courseCompleted &&
+                                    certificate && (
+                                        <div className="mt-6 relative overflow-hidden rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-500/[0.12] via-fuchsia-500/[0.06] to-transparent p-5 sm:p-6">
+
+                                            <div className="absolute -top-16 -right-16 w-40 h-40 rounded-full bg-purple-500/10 blur-3xl pointer-events-none" />
+
+                                            <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+
+                                                <div className="flex items-start gap-4">
+
+                                                    <div className="w-12 h-12 rounded-2xl bg-purple-500/15 border border-purple-500/20 flex items-center justify-center shrink-0">
+                                                        <Award className="w-6 h-6 text-purple-300" />
+                                                    </div>
+
+                                                    <div className="min-w-0">
+
+                                                        <p className="text-[11px] uppercase tracking-[0.18em] text-purple-300/70">
+                                                            Course Completed
+                                                        </p>
+
+                                                        <h3 className="mt-1 text-lg sm:text-xl font-semibold">
+                                                            Congratulations!
+                                                        </h3>
+
+                                                        <p className="mt-1 text-sm text-white/45">
+                                                            Your certificate is ready to download.
+                                                        </p>
+
+                                                        <p className="mt-3 text-[11px] text-white/30">
+                                                            Certificate ID
+                                                        </p>
+
+                                                        <p className="text-sm font-medium text-white/75 break-all">
+                                                            {
+                                                                certificate.certificateId
+                                                            }
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={
+                                                        handleDownloadCertificate
+                                                    }
+                                                    disabled={
+                                                        certificateLoading
+                                                    }
+                                                    className="inline-flex items-center justify-center gap-2 shrink-0 px-5 py-3 rounded-xl bg-white text-black text-sm font-semibold hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                                >
+                                                    {certificateLoading ? (
+                                                        <>
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
+
+                                                            Preparing...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Download className="w-4 h-4" />
+
+                                                            Download Certificate
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                {/* =================================================
+                                    VIDEO COMPLETION NOTICE
+                                ================================================= */}
 
                                 {!currentLessonCompleted &&
                                     !videoEnded && (
                                         <div className="mt-5 flex items-start gap-3 rounded-xl border border-amber-500/10 bg-amber-500/[0.04] px-4 py-3">
+
                                             <PlayCircle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
 
                                             <p className="text-xs leading-5 text-white/45">
@@ -1506,6 +1760,7 @@ export default function CourseLearningPage() {
                                 {videoEnded &&
                                     !currentLessonCompleted && (
                                         <div className="mt-5 flex items-start gap-3 rounded-xl border border-emerald-500/10 bg-emerald-500/[0.04] px-4 py-3">
+
                                             <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
 
                                             <p className="text-xs leading-5 text-white/45">
@@ -1522,10 +1777,14 @@ export default function CourseLearningPage() {
                                     </div>
                                 )}
 
-                                {/* LESSON INFORMATION */}
+                                {/* =================================================
+                                    LESSON INFORMATION
+                                ================================================= */}
 
                                 <section className="mt-10">
+
                                     <div className="flex items-center gap-2 mb-5">
+
                                         <FileText className="w-4 h-4 text-purple-400" />
 
                                         <h3 className="text-base font-semibold">
@@ -1534,7 +1793,9 @@ export default function CourseLearningPage() {
                                     </div>
 
                                     <div className="grid sm:grid-cols-2 gap-3">
+
                                         <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+
                                             <p className="text-[11px] text-white/30 uppercase tracking-wider">
                                                 Duration
                                             </p>
@@ -1547,6 +1808,7 @@ export default function CourseLearningPage() {
                                         </div>
 
                                         <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+
                                             <p className="text-[11px] text-white/30 uppercase tracking-wider">
                                                 Status
                                             </p>
@@ -1555,23 +1817,30 @@ export default function CourseLearningPage() {
                                                 {currentLessonCompleted
                                                     ? "Completed"
                                                     : videoEnded
-                                                    ? "Ready to complete"
-                                                    : "In progress"}
+                                                        ? "Ready to complete"
+                                                        : "In progress"}
                                             </p>
                                         </div>
                                     </div>
                                 </section>
 
-                                {/* COURSE INFORMATION */}
+                                {/* =================================================
+                                    COURSE INFORMATION
+                                ================================================= */}
 
                                 <section className="mt-10 mb-10">
+
                                     <div className="rounded-2xl border border-white/[0.06] bg-gradient-to-br from-purple-500/[0.06] to-transparent p-5 sm:p-6">
+
                                         <div className="flex items-start gap-4">
+
                                             <div className="w-11 h-11 rounded-xl bg-purple-500/10 border border-purple-500/15 flex items-center justify-center shrink-0">
+
                                                 <BookOpen className="w-5 h-5 text-purple-400" />
                                             </div>
 
                                             <div className="min-w-0">
+
                                                 <p className="text-xs text-white/35 uppercase tracking-wider">
                                                     Current Course
                                                 </p>
@@ -1596,7 +1865,9 @@ export default function CourseLearningPage() {
                             </>
                         ) : (
                             <div className="min-h-[60vh] flex items-center justify-center">
+
                                 <div className="text-center text-white/40">
+
                                     <BookOpen className="w-10 h-10 mx-auto mb-3" />
 
                                     <p className="text-sm">

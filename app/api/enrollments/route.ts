@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { ObjectId, type WithId } from "mongodb";
 
 import clientPromise from "@/lib/mongodb";
+
 import { getCurrentUser } from "@/lib/auth";
+
 import { getCoursesCollection } from "@/lib/courses";
+
+import { findOrCreateCertificate } from "@/lib/certificates";
 
 export const runtime = "nodejs";
 
@@ -66,10 +71,15 @@ function serializeEnrollment(
 ) {
     return {
         _id: enrollment._id.toString(),
+
         userId: enrollment.userId.toString(),
+
         courseId: enrollment.courseId.toString(),
+
         status: enrollment.status,
+
         paymentStatus: enrollment.paymentStatus,
+
         progress: enrollment.progress ?? 0,
 
         completedLessons: (
@@ -77,10 +87,12 @@ function serializeEnrollment(
         ).map((id) => id.toString()),
 
         enrolledAt:
-            enrollment.enrolledAt?.toISOString?.() ?? null,
+            enrollment.enrolledAt?.toISOString?.() ??
+            null,
 
         completedAt:
-            enrollment.completedAt?.toISOString?.() ?? null,
+            enrollment.completedAt?.toISOString?.() ??
+            null,
     };
 }
 
@@ -88,8 +100,14 @@ function serializeEnrollment(
 // GET
 // =========================================================
 
-export async function GET(request: NextRequest) {
+export async function GET(
+    request: NextRequest
+) {
     try {
+        // =====================================================
+        // CHECK AUTHENTICATED USER
+        // =====================================================
+
         const user = await getCurrentUser();
 
         if (!user) {
@@ -104,14 +122,22 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        const { searchParams } = new URL(request.url);
-        const courseId = searchParams.get("courseId");
+        const { searchParams } =
+            new URL(request.url);
 
-        const client = await clientPromise;
-        const db = client.db("next-auth");
+        const courseId =
+            searchParams.get("courseId");
+
+        const client =
+            await clientPromise;
+
+        const db =
+            client.db("next-auth");
 
         const enrollments =
-            db.collection<EnrollmentDoc>("enrollments");
+            db.collection<EnrollmentDoc>(
+                "enrollments"
+            );
 
         // =====================================================
         // SINGLE COURSE ENROLLMENT
@@ -130,10 +156,14 @@ export async function GET(request: NextRequest) {
                 );
             }
 
-            const enrollment = await enrollments.findOne({
-                userId: new ObjectId(user.id),
-                courseId: new ObjectId(courseId),
-            });
+            const enrollment =
+                await enrollments.findOne({
+                    userId:
+                        new ObjectId(user.id),
+
+                    courseId:
+                        new ObjectId(courseId),
+                });
 
             if (!enrollment) {
                 return NextResponse.json({
@@ -145,9 +175,13 @@ export async function GET(request: NextRequest) {
 
             return NextResponse.json({
                 success: true,
+
                 enrolled: true,
+
                 enrollment:
-                    serializeEnrollment(enrollment),
+                    serializeEnrollment(
+                        enrollment
+                    ),
             });
         }
 
@@ -155,19 +189,24 @@ export async function GET(request: NextRequest) {
         // ALL ENROLLMENTS OF CURRENT USER
         // =====================================================
 
-        const userEnrollments = await enrollments
-            .find({
-                userId: new ObjectId(user.id),
-            })
-            .sort({
-                enrolledAt: -1,
-            })
-            .toArray();
+        const userEnrollments =
+            await enrollments
+                .find({
+                    userId:
+                        new ObjectId(user.id),
+                })
+                .sort({
+                    enrolledAt: -1,
+                })
+                .toArray();
 
         return NextResponse.json({
             success: true,
+
             enrollments:
-                userEnrollments.map(serializeEnrollment),
+                userEnrollments.map(
+                    serializeEnrollment
+                ),
         });
     } catch (error) {
         console.error(
@@ -178,7 +217,8 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(
             {
                 success: false,
-                message: "Failed to fetch enrollments.",
+                message:
+                    "Failed to fetch enrollments.",
             },
             {
                 status: 500,
@@ -191,7 +231,9 @@ export async function GET(request: NextRequest) {
 // POST
 // =========================================================
 
-export async function POST(request: NextRequest) {
+export async function POST(
+    request: NextRequest
+) {
     try {
         // =====================================================
         // CHECK AUTHENTICATED USER
@@ -215,7 +257,8 @@ export async function POST(request: NextRequest) {
         // READ REQUEST BODY
         // =====================================================
 
-        const body = await request.json();
+        const body =
+            await request.json();
 
         const courseId =
             typeof body?.courseId === "string"
@@ -245,21 +288,13 @@ export async function POST(request: NextRequest) {
         // FIND COURSE
         // =====================================================
 
-        const courses = await getCoursesCollection();
+        const courses =
+            await getCoursesCollection();
 
-        const course = await (
-            courses as unknown as {
-                findOne: (
-                    filter: {
-                        _id: ObjectId;
-                    }
-                ) => Promise<
-                    WithId<CourseDoc> | null
-                >;
-            }
-        ).findOne({
-            _id: courseObjectId,
-        });
+        const course =
+            await courses.findOne({
+                _id: courseObjectId,
+            });
 
         if (!course) {
             return NextResponse.json(
@@ -294,11 +329,16 @@ export async function POST(request: NextRequest) {
         // DATABASE
         // =====================================================
 
-        const client = await clientPromise;
-        const db = client.db("next-auth");
+        const client =
+            await clientPromise;
+
+        const db =
+            client.db("next-auth");
 
         const enrollments =
-            db.collection<EnrollmentDoc>("enrollments");
+            db.collection<EnrollmentDoc>(
+                "enrollments"
+            );
 
         // =====================================================
         // CHECK EXISTING ENROLLMENT
@@ -306,8 +346,11 @@ export async function POST(request: NextRequest) {
 
         const existingEnrollment =
             await enrollments.findOne({
-                userId: new ObjectId(user.id),
-                courseId: courseObjectId,
+                userId:
+                    new ObjectId(user.id),
+
+                courseId:
+                    courseObjectId,
             });
 
         if (existingEnrollment) {
@@ -328,7 +371,9 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json(
                     {
                         success: true,
+
                         requiresPayment: true,
+
                         alreadyEnrolled: true,
 
                         message:
@@ -351,7 +396,8 @@ export async function POST(request: NextRequest) {
                                 existingEnrollment.paymentStatus,
 
                             progress:
-                                existingEnrollment.progress ?? 0,
+                                existingEnrollment.progress ??
+                                0,
 
                             completedLessons:
                                 (
@@ -379,8 +425,11 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json(
                     {
                         success: true,
+
                         requiresPayment: true,
+
                         alreadyEnrolled: true,
+
                         paymentProcessing: true,
 
                         message:
@@ -408,6 +457,7 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json(
                     {
                         success: true,
+
                         alreadyEnrolled: true,
 
                         message:
@@ -434,7 +484,9 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json(
                     {
                         success: true,
+
                         alreadyEnrolled: true,
+
                         completed: true,
 
                         message:
@@ -458,6 +510,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json(
                 {
                     success: true,
+
                     alreadyEnrolled: true,
 
                     message:
@@ -478,19 +531,21 @@ export async function POST(request: NextRequest) {
         // COURSE PRICE
         // =====================================================
 
-        const price = Number(
-            course.price ?? 0
-        );
+        const price =
+            Number(course.price ?? 0);
 
-        const isFree = price <= 0;
+        const isFree =
+            price <= 0;
 
         // =====================================================
         // CREATE NEW ENROLLMENT
         // =====================================================
 
-        const now = new Date();
+        const now =
+            new Date();
 
-        const enrollment: EnrollmentDoc = {
+        const enrollment:
+            EnrollmentDoc = {
             userId:
                 new ObjectId(user.id),
 
@@ -596,7 +651,8 @@ export async function PATCH(
         // AUTHENTICATED USER
         // =====================================================
 
-        const user = await getCurrentUser();
+        const user =
+            await getCurrentUser();
 
         if (!user) {
             return NextResponse.json(
@@ -614,7 +670,8 @@ export async function PATCH(
         // REQUEST BODY
         // =====================================================
 
-        const body = await request.json();
+        const body =
+            await request.json();
 
         const courseId =
             typeof body?.courseId === "string"
@@ -672,11 +729,39 @@ export async function PATCH(
             new ObjectId(user.id);
 
         // =====================================================
+        // FIND COURSE
+        // Needed for certificate data
+        // =====================================================
+
+        const courses =
+            await getCoursesCollection();
+
+        const course =
+            await courses.findOne({
+                _id: courseObjectId,
+            });
+
+        if (!course) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: "Course not found.",
+                },
+                {
+                    status: 404,
+                }
+            );
+        }
+
+        // =====================================================
         // DATABASE
         // =====================================================
 
-        const client = await clientPromise;
-        const db = client.db("next-auth");
+        const client =
+            await clientPromise;
+
+        const db =
+            client.db("next-auth");
 
         const enrollments =
             db.collection<EnrollmentDoc>(
@@ -696,7 +781,9 @@ export async function PATCH(
         const lesson =
             await lessons.findOne({
                 _id: lessonObjectId,
+
                 courseId: courseObjectId,
+
                 status: "published",
             });
 
@@ -720,6 +807,7 @@ export async function PATCH(
         const enrollment =
             await enrollments.findOne({
                 userId: userObjectId,
+
                 courseId: courseObjectId,
             });
 
@@ -767,6 +855,7 @@ export async function PATCH(
         const totalLessons =
             await lessons.countDocuments({
                 courseId: courseObjectId,
+
                 status: "published",
             });
 
@@ -793,9 +882,19 @@ export async function PATCH(
         const completedSet =
             new Set(
                 currentCompletedLessons.map(
-                    (id) => id.toString()
+                    (id) =>
+                        id.toString()
                 )
             );
+
+        // =====================================================
+        // CURRENT TIME
+        // IMPORTANT:
+        // Declare this BEFORE any certificate operation.
+        // =====================================================
+
+        const now =
+            new Date();
 
         // =====================================================
         // ALREADY COMPLETED
@@ -823,33 +922,51 @@ export async function PATCH(
                 completedCount >=
                 totalLessons;
 
-            // Make sure database status is correct
+            // =================================================
+            // MAKE SURE DATABASE STATUS IS CORRECT
+            // =================================================
+
             if (
                 courseCompleted &&
-                enrollment.status !== "completed"
+                enrollment.status !==
+                    "completed"
             ) {
-                const now = new Date();
-
                 await enrollments.updateOne(
                     {
-                        _id: enrollment._id,
-                        userId: userObjectId,
-                        courseId: courseObjectId,
+                        _id:
+                            enrollment._id,
+
+                        userId:
+                            userObjectId,
+
+                        courseId:
+                            courseObjectId,
                     },
                     {
                         $set: {
                             progress: 100,
-                            status: "completed",
-                            completedAt: now,
-                            updatedAt: now,
+
+                            status:
+                                "completed",
+
+                            completedAt:
+                                now,
+
+                            updatedAt:
+                                now,
                         },
                     }
                 );
             }
 
+            // =================================================
+            // FINAL ENROLLMENT
+            // =================================================
+
             const finalEnrollment =
                 await enrollments.findOne({
-                    _id: enrollment._id,
+                    _id:
+                        enrollment._id,
                 });
 
             if (!finalEnrollment) {
@@ -865,11 +982,58 @@ export async function PATCH(
                 );
             }
 
+            // =================================================
+            // CREATE / GET CERTIFICATE
+            //
+            // findOrCreateCertificate() prevents duplicates.
+            // =================================================
+
+            let certificate =
+                null;
+
+            if (courseCompleted) {
+                certificate =
+                    await findOrCreateCertificate({
+                        userId:
+                            userObjectId,
+
+                        courseId:
+                            courseObjectId,
+
+                        enrollmentId:
+                            enrollment._id!,
+
+                        studentName:
+                            user.name,
+
+                        courseName:
+                            course.title,
+
+                        courseDuration:
+                            Number(
+                                course.duration ??
+                                    0
+                            ),
+
+                        issuedAt:
+                            finalEnrollment.completedAt ??
+                            now,
+                    });
+            }
+
+            // =================================================
+            // RESPONSE
+            // =================================================
+
             return NextResponse.json({
                 success: true,
+
                 alreadyCompleted: true,
+
                 lessonCompleted: true,
+
                 progress,
+
                 courseCompleted,
 
                 completedLessons:
@@ -884,6 +1048,8 @@ export async function PATCH(
                     serializeEnrollment(
                         finalEnrollment
                     ),
+
+                certificate,
             });
         }
 
@@ -891,21 +1057,26 @@ export async function PATCH(
         // ADD LESSON TO COMPLETED LESSONS
         // =====================================================
 
-        const now = new Date();
-
         await enrollments.updateOne(
             {
-                _id: enrollment._id,
-                userId: userObjectId,
-                courseId: courseObjectId,
+                _id:
+                    enrollment._id,
+
+                userId:
+                    userObjectId,
+
+                courseId:
+                    courseObjectId,
             },
             {
                 $addToSet: {
                     completedLessons:
                         lessonObjectId,
                 },
+
                 $set: {
-                    updatedAt: now,
+                    updatedAt:
+                        now,
                 },
             }
         );
@@ -916,7 +1087,8 @@ export async function PATCH(
 
         const updatedEnrollment =
             await enrollments.findOne({
-                _id: enrollment._id,
+                _id:
+                    enrollment._id,
             });
 
         if (!updatedEnrollment) {
@@ -969,9 +1141,14 @@ export async function PATCH(
 
         await enrollments.updateOne(
             {
-                _id: enrollment._id,
-                userId: userObjectId,
-                courseId: courseObjectId,
+                _id:
+                    enrollment._id,
+
+                userId:
+                    userObjectId,
+
+                courseId:
+                    courseObjectId,
             },
             {
                 $set: {
@@ -987,7 +1164,8 @@ export async function PATCH(
                             ? now
                             : null,
 
-                    updatedAt: now,
+                    updatedAt:
+                        now,
                 },
             }
         );
@@ -998,7 +1176,8 @@ export async function PATCH(
 
         const finalEnrollment =
             await enrollments.findOne({
-                _id: enrollment._id,
+                _id:
+                    enrollment._id,
             });
 
         if (!finalEnrollment) {
@@ -1012,6 +1191,46 @@ export async function PATCH(
                     status: 500,
                 }
             );
+        }
+
+        // =====================================================
+        // CREATE CERTIFICATE
+        //
+        // Only when ALL published lessons are completed.
+        // findOrCreateCertificate() prevents duplicates.
+        // =====================================================
+
+        let certificate =
+            null;
+
+        if (courseCompleted) {
+            certificate =
+                await findOrCreateCertificate({
+                    userId:
+                        userObjectId,
+
+                    courseId:
+                        courseObjectId,
+
+                    enrollmentId:
+                        enrollment._id!,
+
+                    studentName:
+                        user.name,
+
+                    courseName:
+                        course.title,
+
+                    courseDuration:
+                        Number(
+                            course.duration ??
+                                0
+                        ),
+
+                    issuedAt:
+                        finalEnrollment.completedAt ??
+                        now,
+                });
         }
 
         // =====================================================
@@ -1043,6 +1262,8 @@ export async function PATCH(
                 serializeEnrollment(
                     finalEnrollment
                 ),
+
+            certificate,
         });
     } catch (error) {
         console.error(
