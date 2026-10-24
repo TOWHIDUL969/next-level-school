@@ -1,167 +1,133 @@
+
 import {
-  NextRequest,
-  NextResponse,
+    NextRequest,
+    NextResponse,
 } from "next/server";
 
 import {
-  completeSSLCommerzPayment,
+    completeSSLCommerzPayment,
 } from "@/lib/sslcommerz";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export async function POST(
-  request: NextRequest
-) {
-  try {
-    const formData =
-      await request.formData();
+export async function POST(request: NextRequest) {
+    try {
+        const formData = await request.formData();
 
-    const tranId =
-      String(
-        formData.get("tran_id") || ""
-      );
+        const tranId = String(
+            formData.get("tran_id") ?? ""
+        ).trim();
 
-    const valId =
-      String(
-        formData.get("val_id") || ""
-      );
+        const valId = String(
+            formData.get("val_id") ?? ""
+        ).trim();
 
-    const status =
-      String(
-        formData.get("status") || ""
-      )
-        .trim()
-        .toUpperCase();
+        const status = String(
+            formData.get("status") ?? ""
+        ).trim().toUpperCase();
 
-    const amount =
-      String(
-        formData.get("amount") || ""
-      );
+        if (!tranId) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: "Transaction ID is missing.",
+                },
+                { status: 400 }
+            );
+        }
 
-    const currency =
-      String(
-        formData.get("currency") || ""
-      )
-        .trim()
-        .toUpperCase();
+        console.info("SSLCOMMERZ IPN received", {
+            transactionId: tranId,
+            status,
+            hasValidationId: Boolean(valId),
+        });
 
-    console.log(
-      "SSLCOMMERZ IPN received:",
-      {
-        tranId,
-        valId,
-        status,
-        amount,
-        currency,
-      }
-    );
+        // Only attempt completion for potentially successful
+        // transactions. The server-side validation API remains
+        // the authority for payment status and amount.
+        if (
+            status === "SUCCESS" ||
+            status === "VALID" ||
+            status === "VALIDATED"
+        ) {
+            if (!valId) {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        message: "Validation ID is missing.",
+                    },
+                    { status: 400 }
+                );
+            }
 
-    if (!tranId) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "Transaction ID is missing.",
-        },
-        { status: 400 }
-      );
-    }
+            const result =
+                await completeSSLCommerzPayment(
+                    tranId,
+                    valId
+                );
 
-    /*
-     * For successful IPN:
-     * validate with SSLCOMMERZ.
-     */
-    if (
-      status === "SUCCESS" ||
-      status === "VALID"
-    ) {
-      if (!valId) {
+            return NextResponse.json(
+                {
+                    success: true,
+                    message: result.alreadyPaid
+                        ? "Payment was already processed."
+                        : "Payment verified and processed.",
+                    transactionId: tranId,
+                    status: "paid",
+                },
+                { status: 200 }
+            );
+        }
+
+        // A negative or pending IPN is not proof that a payment
+        // should be marked failed. It must not activate enrollment.
+        if (
+            status === "FAILED" ||
+            status === "CANCELLED" ||
+            status === "UNATTEMPTED" ||
+            status === "EXPIRED" ||
+            status === "PENDING"
+        ) {
+            console.info("SSLCOMMERZ non-success IPN received", {
+                transactionId: tranId,
+                status,
+            });
+
+            return NextResponse.json(
+                {
+                    success: true,
+                    message: "Notification received; no payment activation performed.",
+                    transactionId: tranId,
+                    status,
+                },
+                { status: 200 }
+            );
+        }
+
+        // Unknown statuses are acknowledged but never treated as paid.
+        console.warn("Unknown SSLCOMMERZ IPN status", {
+            transactionId: tranId,
+            status: status || "EMPTY",
+        });
+
         return NextResponse.json(
-          {
-            success: false,
-            message:
-              "Validation ID is missing.",
-          },
-          { status: 400 }
+            {
+                success: true,
+                message: "Notification received; no final action taken.",
+                transactionId: tranId,
+            },
+            { status: 200 }
         );
-      }
+    } catch (error) {
+        console.error("SSLCOMMERZ IPN processing failed", error);
 
-      const result =
-        await completeSSLCommerzPayment(
-          tranId,
-          valId
+        return NextResponse.json(
+            {
+                success: false,
+                message: "IPN processing failed. Please retry notification processing.",
+            },
+            { status: 500 }
         );
-
-      return NextResponse.json(
-        {
-          success: true,
-          message:
-            result.alreadyPaid
-              ? "Payment was already processed."
-              : "Payment validated and completed.",
-          transactionId: tranId,
-        },
-        { status: 200 }
-      );
     }
-
-    /*
-     * Failed / cancelled / unattempted / expired
-     * transactions should NOT activate enrollment.
-     *
-     * We don't mark anything paid here.
-     */
-    if (
-      status === "FAILED" ||
-      status === "CANCELLED" ||
-      status === "UNATTEMPTED" ||
-      status === "EXPIRED"
-    ) {
-      console.log(
-        `SSLCOMMERZ IPN status: ${status}`,
-        tranId
-      );
-
-      return NextResponse.json(
-        {
-          success: true,
-          message:
-            `Payment status received: ${status}`,
-          transactionId: tranId,
-        },
-        { status: 200 }
-      );
-    }
-
-    /*
-     * Unknown/pending status:
-     * keep payment pending.
-     */
-    return NextResponse.json(
-      {
-        success: true,
-        message:
-          "Payment notification received. No final action taken.",
-        transactionId: tranId,
-        status,
-      },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error(
-      "SSLCOMMERZ IPN processing error:",
-      error
-    );
-
-    return NextResponse.json(
-      {
-        success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : "IPN processing failed.",
-      },
-      { status: 500 }
-    );
-  }
 }
