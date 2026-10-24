@@ -175,44 +175,38 @@ export default function Footer() {
     { left: "82%", top: "85%" },
   ];
 
+
   return (
     <footer
       ref={footerRef}
       className="relative overflow-hidden bg-black text-white"
     >
       {/* =====================================================
-          ANIMATED BACKGROUND
-      ===================================================== */}
+            ANIMATED BACKGROUND
+        ===================================================== */}
 
       <div className="pointer-events-none absolute inset-0">
-
-        {/* -----------------------------------------
-            VISIBLE GRID
-        ----------------------------------------- */}
-
+        {/* VISIBLE GRID */}
         <div
           ref={gridRef}
           className="absolute inset-0 opacity-100"
           style={{
             backgroundImage: `
-              linear-gradient(
-                rgba(255,255,255,0.10) 1px,
-                transparent 1px
-              ),
-              linear-gradient(
-                90deg,
-                rgba(255,255,255,0.10) 1px,
-                transparent 1px
-              )
-            `,
+                        linear-gradient(
+                            rgba(255,255,255,0.10) 1px,
+                            transparent 1px
+                        ),
+                        linear-gradient(
+                            90deg,
+                            rgba(255,255,255,0.10) 1px,
+                            transparent 1px
+                        )
+                    `,
             backgroundSize: "45px 45px",
           }}
         />
 
-        {/* -----------------------------------------
-            GLOWING GRID POINTS
-        ----------------------------------------- */}
-
+        {/* GLOWING GRID POINTS */}
         <div
           ref={pointsRef}
           className="absolute inset-0"
@@ -229,10 +223,7 @@ export default function Footer() {
           ))}
         </div>
 
-        {/* -----------------------------------------
-            HORIZONTAL SCAN BEAM
-        ----------------------------------------- */}
-
+        {/* HORIZONTAL SCAN BEAM */}
         <div
           ref={beamRef}
           className="absolute left-0 top-0 h-32 w-full"
@@ -243,10 +234,7 @@ export default function Footer() {
           }}
         />
 
-        {/* -----------------------------------------
-            MOUSE GLOW
-        ----------------------------------------- */}
-
+        {/* MOUSE GLOW */}
         <div
           ref={mouseGlowRef}
           className="absolute left-0 top-0 h-[550px] w-[550px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0"
@@ -256,28 +244,19 @@ export default function Footer() {
           }}
         />
 
-        {/* -----------------------------------------
-            TOP FADE
-        ----------------------------------------- */}
-
+        {/* TOP FADE */}
         <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black via-black/80 to-transparent" />
 
-        {/* -----------------------------------------
-            BOTTOM FADE
-        ----------------------------------------- */}
-
+        {/* BOTTOM FADE */}
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black via-black/80 to-transparent" />
 
-        {/* -----------------------------------------
-            SIDE VIGNETTE
-        ----------------------------------------- */}
-
+        {/* SIDE VIGNETTE */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,rgba(0,0,0,0.45)_100%)]" />
       </div>
 
       {/* =====================================================
-          MAIN FOOTER CONTENT
-      ===================================================== */}
+            MAIN FOOTER CONTENT
+        ===================================================== */}
 
       <div
         ref={contentRef}
@@ -285,10 +264,7 @@ export default function Footer() {
       >
         <div className="grid gap-14 md:grid-cols-2 lg:grid-cols-4">
 
-          {/* =================================================
-              BRAND
-          ================================================= */}
-
+          {/* BRAND */}
           <div>
             <Link
               href="/"
@@ -323,9 +299,7 @@ export default function Footer() {
             </p>
 
             {/* Social Icons */}
-
             <div className="mt-7 flex gap-3">
-
               <a
                 href="#"
                 aria-label="Facebook"
@@ -355,23 +329,17 @@ export default function Footer() {
                   in
                 </span>
               </a>
-
             </div>
           </div>
 
-          {/* =================================================
-              QUICK LINKS
-          ================================================= */}
-
+          {/* QUICK LINKS */}
           <div>
             <h3 className="relative inline-block text-sm font-semibold uppercase tracking-[0.2em]">
               Quick Links
-
               <span className="absolute -bottom-2 left-0 h-px w-8 bg-white/70" />
             </h3>
 
             <ul className="mt-8 space-y-4">
-
               {[
                 ["Home", "/"],
                 ["About Us", "/about"],
@@ -387,38 +355,29 @@ export default function Footer() {
                     <span className="mr-2 w-0 overflow-hidden opacity-0 transition-all duration-300 group-hover:w-4 group-hover:opacity-100">
                       →
                     </span>
-
                     {label}
                   </Link>
                 </li>
               ))}
-
             </ul>
           </div>
 
-          {/* =================================================
-              COURSES
-          ================================================= */}
 
+          {/* FOR STUDENTS */}
           <div>
             <h3 className="relative inline-block text-sm font-semibold uppercase tracking-[0.2em]">
-              Courses
+              For Students
 
               <span className="absolute -bottom-2 left-0 h-px w-8 bg-white/70" />
             </h3>
 
             <ul className="mt-8 space-y-4">
-
               {[
-                ["Web Development", "/courses/web-development"],
-                ["UI/UX Design", "/courses/ui-ux"],
-                ["Graphic Design", "/courses/graphic-design"],
-                ["Digital Marketing", "/courses/digital-marketing"],
-                ["Video Editing", "/courses/video-editing"],
-                [
-                  "AI Driven Basic Computer",
-                  "/courses/ai-driven-basic-computer",
-                ],
+                ["Student Login", "/login"],
+                ["Student Registration", "/register"],
+                ["My Learning", "/dashboard"],
+                ["Certificates", "/dashboard/certificates"],
+                ["Help & Support", "/contact"],
               ].map(([label, href]) => (
                 <li key={href}>
                   <Link
@@ -433,62 +392,77 @@ export default function Footer() {
                   </Link>
                 </li>
               ))}
-
             </ul>
           </div>
 
-          {/* =================================================
-              CONTACT
-          ================================================= */}
 
+          {/* CONTACT */}
           <div>
             <h3 className="relative inline-block text-sm font-semibold uppercase tracking-[0.2em]">
               Contact Us
-
               <span className="absolute -bottom-2 left-0 h-px w-8 bg-white/70" />
             </h3>
 
             <div className="mt-8 space-y-6">
 
-              {/* Address */}
-
+              {/* Main Address */}
               <div className="group">
                 <p className="text-sm font-medium">
-                  📍 Address
+                  📍 Main Address
                 </p>
 
-                <p className="mt-1 text-sm leading-6 text-gray-400 transition-colors group-hover:text-gray-300">
-                  Your Institute Address
+                <a
+                  href="https://www.google.com/maps/search/?api=1&query=Maa+Shopping+Mall%2C+High+School+Road%2C+Melandaha+Bazar%2C+Jamalpur%2C+Bangladesh"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 block text-sm leading-6 text-gray-400 transition-colors hover:text-white"
+                >
+                  Maa Shopping Mall, High School Road,
+                  Melandaha Bazar, Jamalpur, Bangladesh
+                </a>
+              </div>
+
+              {/* Secondary Address */}
+              <div className="group">
+                <p className="text-sm font-medium">
+                  📍 Secondary Address
                 </p>
+
+                <a
+                  href="https://www.google.com/maps/search/?api=1&query=Sarai-3274%2C+Lama%2C+Bandarban%2C+Bangladesh"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 block text-sm leading-6 text-gray-400 transition-colors hover:text-white"
+                >
+                  Sarai-3274, Lama, Bandarban, Bangladesh
+                </a>
               </div>
 
               {/* Phone */}
-
               <div className="group">
                 <p className="text-sm font-medium">
                   ☎ Phone
                 </p>
 
                 <a
-                  href="tel:+8801XXXXXXXXX"
+                  href="tel:+8801615803396"
                   className="mt-1 block text-sm text-gray-400 transition-colors hover:text-white"
                 >
-                  +880 1XXX-XXXXXX
+                  01615803396
                 </a>
               </div>
 
               {/* Email */}
-
               <div className="group">
                 <p className="text-sm font-medium">
                   ✉ Email
                 </p>
 
                 <a
-                  href="mailto:info@nextlevelschool.com"
-                  className="mt-1 block text-sm text-gray-400 transition-colors hover:text-white"
+                  href="mailto:nextlevelschool.info@gmail.com"
+                  className="mt-1 block break-words text-sm text-gray-400 transition-colors hover:text-white"
                 >
-                  info@nextlevelschool.com
+                  nextlevelschool.info@gmail.com
                 </a>
               </div>
 
@@ -498,11 +472,10 @@ export default function Footer() {
       </div>
 
       {/* =====================================================
-          BOTTOM FOOTER
-      ===================================================== */}
+            BOTTOM FOOTER
+        ===================================================== */}
 
       <div className="relative z-10 border-t border-white/10">
-
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-6 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left lg:px-8">
 
           <p className="text-sm text-gray-500">
@@ -511,7 +484,6 @@ export default function Footer() {
           </p>
 
           <div className="flex justify-center gap-6 sm:justify-end">
-
             <Link
               href="/privacy-policy"
               className="text-sm text-gray-500 transition-colors hover:text-white"
@@ -525,12 +497,11 @@ export default function Footer() {
             >
               Terms & Conditions
             </Link>
-
           </div>
-
         </div>
       </div>
     </footer>
   );
+
 }
 
