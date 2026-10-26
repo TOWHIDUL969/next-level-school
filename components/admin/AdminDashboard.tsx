@@ -77,112 +77,75 @@ type StatCardProps = {
   positive: boolean;
   icon: ElementType;
   gradient: string;
+  comparisonLabel?: string;
 };
 
 /* =========================================================
-   DATA
+   DASHBOARD DATA TYPES
 ========================================================= */
 
-const enrollmentData = [
-  { month: "Jan", students: 120 },
-  { month: "Feb", students: 180 },
-  { month: "Mar", students: 240 },
-  { month: "Apr", students: 310 },
-  { month: "May", students: 390 },
-  { month: "Jun", students: 460 },
-  { month: "Jul", students: 520 },
-  { month: "Aug", students: 610 },
-  { month: "Sep", students: 690 },
-  { month: "Oct", students: 760 },
-  { month: "Nov", students: 830 },
-  { month: "Dec", students: 920 },
-];
+type EnrollmentChartPoint = {
+  month: string;
+  students: number;
+};
 
-const revenueData = [
-  { month: "Jan", revenue: 180000 },
-  { month: "Feb", revenue: 240000 },
-  { month: "Mar", revenue: 290000 },
-  { month: "Apr", revenue: 360000 },
-  { month: "May", revenue: 410000 },
-  { month: "Jun", revenue: 480000 },
-  { month: "Jul", revenue: 520000 },
-  { month: "Aug", revenue: 590000 },
-  { month: "Sep", revenue: 630000 },
-  { month: "Oct", revenue: 690000 },
-  { month: "Nov", revenue: 760000 },
-  { month: "Dec", revenue: 840000 },
-];
+type RevenueChartPoint = {
+  month: string;
+  revenue: number;
+};
 
-const courseData = [
-  { name: "MERN", value: 42 },
-  { name: "Graphics", value: 25 },
-  { name: "UI/UX", value: 18 },
-  { name: "Basic IT", value: 15 },
-];
+type CourseDistributionPoint = {
+  name: string;
+  value: number;
+};
+
+type CoursePerformanceItem = {
+  title: string;
+  students: number;
+  progress: number;
+  category: string;
+};
+
+type RecentEnrollmentItem = {
+  id: string;
+  name: string;
+  course: string;
+  status: string;
+  amount: string;
+  initials: string;
+};
+
+type DashboardStats = {
+  totalStudents: number;
+  activeCourses: number;
+  totalRevenue: number;
+  completionRate: number;
+  enrollmentData: EnrollmentChartPoint[];
+  revenueData: RevenueChartPoint[];
+  courseData: CourseDistributionPoint[];
+  coursePerformance: CoursePerformanceItem[];
+  recentEnrollments: RecentEnrollmentItem[];
+};
+
+const initialDashboardStats: DashboardStats = {
+  totalStudents: 0,
+  activeCourses: 0,
+  totalRevenue: 0,
+  completionRate: 0,
+  enrollmentData: [],
+  revenueData: [],
+  courseData: [],
+  coursePerformance: [],
+  recentEnrollments: [],
+};
 
 const courseColors = [
   "#a855f7",
   "#3b82f6",
   "#22d3ee",
   "#6366f1",
-];
-
-const coursePerformance = [
-  {
-    title: "MERN Web Development",
-    students: 186,
-    progress: 92,
-    category: "Development",
-  },
-  {
-    title: "Graphics Design",
-    students: 142,
-    progress: 84,
-    category: "Design",
-  },
-  {
-    title: "UI/UX Design",
-    students: 118,
-    progress: 78,
-    category: "Design",
-  },
-  {
-    title: "Basic Computer & IT",
-    students: 224,
-    progress: 96,
-    category: "IT",
-  },
-];
-
-const recentEnrollments = [
-  {
-    name: "Avijit Shaha Apurbo",
-    course: "MERN Web Development",
-    status: "Active",
-    amount: "৳12,000",
-    initials: "AS",
-  },
-  {
-    name: "Mustahim Billah Nishan",
-    course: "Graphics Design",
-    status: "Pending",
-    amount: "৳8,500",
-    initials: "MN",
-  },
-  {
-    name: "Salma Maliha",
-    course: "UI/UX Design",
-    status: "Active",
-    amount: "৳9,000",
-    initials: "SM",
-  },
-  {
-    name: "Momtahina",
-    course: "Basic Computer & IT",
-    status: "Active",
-    amount: "৳5,000",
-    initials: "M",
-  },
+  "#ec4899",
+  "#14b8a6",
 ];
 
 const navItems: NavItem[] = [
@@ -246,6 +209,7 @@ function StatCard({
   positive,
   icon: Icon,
   gradient,
+  comparisonLabel = "vs last month",
 }: StatCardProps) {
   return (
     <div
@@ -339,7 +303,7 @@ function StatCard({
             </span>
 
             <span className="truncate text-[11px] text-zinc-600">
-              vs last month
+              {comparisonLabel}
             </span>
           </div>
         </div>
@@ -387,6 +351,68 @@ export default function AdminDashboard() {
   const [loadingAdmin, setLoadingAdmin] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [dashboardStats, setDashboardStats] =
+    useState<DashboardStats>(initialDashboardStats);
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [statsError, setStatsError] = useState("");
+
+  const enrollmentData = dashboardStats.enrollmentData;
+  const revenueData = dashboardStats.revenueData;
+  const courseData = dashboardStats.courseData;
+  const coursePerformance = dashboardStats.coursePerformance;
+  const recentEnrollments = dashboardStats.recentEnrollments;
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchDashboardStats = async () => {
+      try {
+        setLoadingStats(true);
+        setStatsError("");
+
+        const response = await fetch("/api/admin/dashboard/stats", {
+          method: "GET",
+          cache: "no-store",
+          credentials: "include",
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data?.success || !data?.stats) {
+          throw new Error(
+            data?.message || "Failed to load dashboard statistics."
+          );
+        }
+
+        if (mounted) {
+          setDashboardStats({
+            ...initialDashboardStats,
+            ...data.stats,
+          });
+        }
+      } catch (error) {
+        console.error("Dashboard statistics fetch error:", error);
+
+        if (mounted) {
+          setStatsError(
+            error instanceof Error
+              ? error.message
+              : "Could not load dashboard statistics."
+          );
+        }
+      } finally {
+        if (mounted) {
+          setLoadingStats(false);
+        }
+      }
+    };
+
+    fetchDashboardStats();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   /* =======================================================
      FETCH ADMIN
@@ -1418,6 +1444,11 @@ export default function AdminDashboard() {
                     Here&apos;s what&apos;s happening with
                     Next Level School today.
                   </p>
+                  {statsError && (
+                    <p className="mt-2 text-xs text-red-300">
+                      Dashboard data could not be refreshed. {statsError}
+                    </p>
+                  )}
                 </div>
 
                 <Link
@@ -1471,36 +1502,48 @@ export default function AdminDashboard() {
             >
               <StatCard
                 title="Total Students"
-                value="2,480"
-                change="+18.4%"
+                value={loadingStats ? "..." : dashboardStats.totalStudents.toLocaleString()}
+                change={loadingStats ? "Loading" : "Live"}
                 positive
+                comparisonLabel={loadingStats ? "Fetching data" : "from database"}
                 icon={Users}
                 gradient="from-purple-600 to-fuchsia-500"
               />
 
               <StatCard
                 title="Active Courses"
-                value="24"
-                change="+12.8%"
+                value={loadingStats ? "..." : dashboardStats.activeCourses.toLocaleString()}
+                change={loadingStats ? "Loading" : "Live"}
                 positive
+                comparisonLabel={loadingStats ? "Fetching data" : "published courses"}
                 icon={BookOpen}
                 gradient="from-blue-600 to-indigo-500"
               />
 
               <StatCard
                 title="Total Revenue"
-                value="৳48.6L"
-                change="+24.6%"
+                value={
+                  loadingStats
+                    ? "..."
+                    : `৳${dashboardStats.totalRevenue.toLocaleString("en-BD")}`
+                }
+                change={loadingStats ? "Loading" : "Paid"}
                 positive
+                comparisonLabel={loadingStats ? "Fetching data" : "confirmed payments"}
                 icon={CircleDollarSign}
                 gradient="from-cyan-500 to-blue-500"
               />
 
               <StatCard
                 title="Completion Rate"
-                value="86.4%"
-                change="+8.2%"
+                value={
+                  loadingStats
+                    ? "..."
+                    : `${dashboardStats.completionRate.toFixed(1)}%`
+                }
+                change={loadingStats ? "Loading" : "Live"}
                 positive
+                comparisonLabel={loadingStats ? "Fetching data" : "average progress"}
                 icon={Activity}
                 gradient="from-violet-600 to-cyan-400"
               />
@@ -1674,7 +1717,7 @@ export default function AdminDashboard() {
 
                   <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
                     <span className="text-3xl font-bold">
-                      24
+                      {loadingStats ? "…" : dashboardStats.activeCourses}
                     </span>
 
                     <span className="text-xs text-zinc-600">
@@ -1684,7 +1727,11 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  {courseData.map(
+                  {courseData.length === 0 ? (
+                    <p className="col-span-2 text-center text-xs text-zinc-500">
+                      {loadingStats ? "Loading course distribution..." : "No course categories available."}
+                    </p>
+                  ) : courseData.map(
                     (course, index) => (
                       <div
                         key={course.name}
@@ -1852,7 +1899,11 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="space-y-5">
-                  {coursePerformance.map(
+                  {loadingStats ? (
+                    <p className="text-sm text-zinc-500">Loading course performance...</p>
+                  ) : coursePerformance.length === 0 ? (
+                    <p className="text-sm text-zinc-500">No course data available yet.</p>
+                  ) : coursePerformance.map(
                     (course) => (
                       <div key={course.title}>
                         <div className="mb-2 flex items-center justify-between gap-4">
@@ -1918,10 +1969,22 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="space-y-3">
-                  {recentEnrollments.map(
+                  {statsError ? (
+                    <p className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-300">
+                      {statsError}
+                    </p>
+                  ) : loadingStats ? (
+                    <p className="rounded-xl border border-white/5 bg-white/[0.025] p-4 text-sm text-zinc-500">
+                      Loading recent enrollments...
+                    </p>
+                  ) : recentEnrollments.length === 0 ? (
+                    <p className="rounded-xl border border-white/5 bg-white/[0.025] p-4 text-sm text-zinc-500">
+                      No enrollments found yet.
+                    </p>
+                  ) : recentEnrollments.map(
                     (student) => (
                       <Link
-                        key={student.name}
+                        key={student.id}
                         href="/dashboard/admin/enrollments"
                         className="
                           group
@@ -1983,8 +2046,8 @@ export default function AdminDashboard() {
                               text-[10px]
                               font-semibold
                               ${
-                                student.status ===
-                                "Active"
+                                student.status === "Active" ||
+                                student.status === "Completed"
                                   ? "bg-cyan-400/10 text-cyan-400"
                                   : "bg-yellow-400/10 text-yellow-400"
                               }

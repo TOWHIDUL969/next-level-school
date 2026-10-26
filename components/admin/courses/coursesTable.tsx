@@ -30,6 +30,8 @@ export default function CourseTable() {
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // ✅ Fetch courses
   const fetchCourses = async () => {
@@ -97,13 +99,34 @@ export default function CourseTable() {
   // ✅ Filter courses
   const filteredCourses = courses.filter((course) => {
     const query = search.toLowerCase().trim();
+
     if (!query) return true;
+
     return (
       (course.title?.toLowerCase().includes(query) || false) ||
       (course.category?.toLowerCase().includes(query) || false) ||
       (course.level?.toLowerCase().includes(query) || false)
     );
   });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredCourses.length / pageSize);
+  const safeCurrentPage = Math.min(
+    currentPage,
+    Math.max(1, totalPages)
+  );
+
+  const paginatedCourses = filteredCourses.slice(
+    (safeCurrentPage - 1) * pageSize,
+    safeCurrentPage * pageSize
+  );
+
+  // Keep the current page valid after deleting or filtering courses
+  useEffect(() => {
+    setCurrentPage((current) =>
+      Math.min(current, Math.max(1, totalPages))
+    );
+  }, [totalPages]);
 
   // ✅ Stats
   const totalLessons = courses.reduce(
@@ -201,7 +224,10 @@ export default function CourseTable() {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
               placeholder="Search courses..."
               className="w-full rounded-xl border border-white/10 bg-black/20 py-2.5 pl-10 pr-4 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-purple-500/50"
             />
@@ -269,7 +295,7 @@ export default function CourseTable() {
                 </tr>
               </thead>
               <tbody>
-                {filteredCourses.map((course) => (
+                {paginatedCourses.map((course) => (
                   <tr
                     key={course._id}
                     className="border-b border-white/5 transition hover:bg-white/[0.025]"
@@ -307,13 +333,12 @@ export default function CourseTable() {
                     </td>
                     <td className="px-5 py-5">
                       <span
-                        className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-                          course.level === "Beginner"
-                            ? "bg-emerald-500/10 text-emerald-400"
-                            : course.level === "Intermediate"
+                        className={`rounded-lg px-3 py-1.5 text-xs font-medium ${course.level === "Beginner"
+                          ? "bg-emerald-500/10 text-emerald-400"
+                          : course.level === "Intermediate"
                             ? "bg-blue-500/10 text-blue-400"
                             : "bg-purple-500/10 text-purple-400"
-                        }`}
+                          }`}
                       >
                         {course.level || "Beginner"}
                       </span>
@@ -325,18 +350,16 @@ export default function CourseTable() {
                     </td>
                     <td className="px-5 py-5">
                       <span
-                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium ${
-                          course.status === "published"
-                            ? "bg-emerald-500/10 text-emerald-400"
-                            : "bg-amber-500/10 text-amber-400"
-                        }`}
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium ${course.status === "published"
+                          ? "bg-emerald-500/10 text-emerald-400"
+                          : "bg-amber-500/10 text-amber-400"
+                          }`}
                       >
                         <span
-                          className={`h-1.5 w-1.5 rounded-full ${
-                            course.status === "published"
-                              ? "bg-emerald-400"
-                              : "bg-amber-400"
-                          }`}
+                          className={`h-1.5 w-1.5 rounded-full ${course.status === "published"
+                            ? "bg-emerald-400"
+                            : "bg-amber-400"
+                            }`}
                         />
                         {course.status === "published" ? "Published" : "Draft"}
                       </span>
@@ -393,6 +416,108 @@ export default function CourseTable() {
             </table>
           </div>
         )}
+
+        {/* Pagination Controls */}
+        {!loading && !error && filteredCourses.length > 0 && (
+          <div className="flex flex-col gap-4 border-t border-white/10 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-400">
+              <span>
+                Showing{" "}
+                <strong className="text-white">
+                  {(safeCurrentPage - 1) * pageSize + 1}
+                  {"–"}
+                  {Math.min(safeCurrentPage * pageSize, filteredCourses.length)}
+                </strong>
+                {" "}of{" "}
+                <strong className="text-white">
+                  {filteredCourses.length}
+                </strong>{" "}
+                courses
+              </span>
+
+              <label className="flex items-center gap-2">
+                Rows:
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="rounded-lg border border-white/10 bg-[#18181b] px-3 py-2 text-white outline-none focus:border-purple-500/50"
+                  aria-label="Courses per page"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setCurrentPage((page) => Math.max(1, page - 1))
+                }
+                disabled={safeCurrentPage <= 1}
+                className="rounded-lg border border-white/10 px-3 py-2 text-sm text-zinc-300 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                Previous
+              </button>
+
+              {Array.from({ length: totalPages }, (_, index) => index + 1)
+                .filter(
+                  (page) =>
+                    page === 1 ||
+                    page === totalPages ||
+                    Math.abs(page - safeCurrentPage) <= 1
+                )
+                .reduce<(number | "...")[]>((pages, page, index, visiblePages) => {
+                  if (index > 0 && page - visiblePages[index - 1] > 1) {
+                    pages.push("...");
+                  }
+
+                  pages.push(page);
+                  return pages;
+                }, [])
+                .map((page, index) =>
+                  page === "..." ? (
+                    <span
+                      key={`ellipsis-${index}`}
+                      className="px-1 text-zinc-600"
+                    >
+                      …
+                    </span>
+                  ) : (
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() => setCurrentPage(page)}
+                      aria-current={safeCurrentPage === page ? "page" : undefined}
+                      className={`min-w-10 rounded-lg px-3 py-2 text-sm font-medium transition ${safeCurrentPage === page
+                          ? "bg-purple-600 text-white shadow-lg shadow-purple-500/20"
+                          : "border border-white/10 text-zinc-400 hover:bg-white/10 hover:text-white"
+                        }`}
+                    >
+                      {page}
+                    </button>
+                  )
+                )}
+
+              <button
+                type="button"
+                onClick={() =>
+                  setCurrentPage((page) => Math.min(totalPages, page + 1))
+                }
+                disabled={safeCurrentPage >= totalPages}
+                className="rounded-lg border border-white/10 px-3 py-2 text-sm text-zinc-300 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* ✅ Course Form Modal */}
